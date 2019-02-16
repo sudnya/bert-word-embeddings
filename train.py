@@ -45,6 +45,7 @@ def runWithSlurm(arguments):
         raise RuntimeError(str(command) + " -> " + str(returnCode))
 
 def haveSlurm():
+    import shutil
     srun = shutil.which('srun')
 
     if not srun is None:
@@ -86,7 +87,9 @@ def main():
         help = "The number of graphs to sample from the validation set.")
     parser.add_argument("--test-set", default="",
         help = "The path to the test set to run on.")
-    parser.add_argument("--make-vocab", default="",
+    parser.add_argument("--vocab_size", default=10000,
+        help = "The number of tokens to include in the vocab.")
+    parser.add_argument("--make-vocab", default=False, action="store_true",
         help = "Make a vocab file for the validation set.")
     parser.add_argument("-o", "--output-directory", default="test-set",
         help = "The output directory the save the test set or vocab file.")

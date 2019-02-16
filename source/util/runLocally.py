@@ -8,6 +8,7 @@ import shutil
 from models.ModelFactory import ModelFactory
 from inference.Predictor import Predictor
 from data.DataSources import DataSources
+from data.DataSourceFactory import DataSourceFactory
 from mpi.mpi import mpi
 from util.vocab import saveVocab
 
@@ -31,7 +32,7 @@ def getData(sources, config):
     dataSources = DataSources(config)
 
     for source in sources:
-        dataSources.addSource(source)
+        dataSources.addSource(DataSourceFactory(config).create(source))
 
     return dataSources
 
@@ -46,7 +47,7 @@ def getModel(config, trainingData, validationData):
         trainingData=trainingData, validationData=validationData).create()
 
 def getPredictor(config, validationData):
-    return Predictor(config, config["predictor"], validationData)
+    return Predictor(config, validationData)
 
 def saveData(validationData, tokenCount, directory):
     if not os.path.exists(directory):
@@ -99,7 +100,6 @@ def loadConfig(arguments):
     if arguments["model_path"] != "":
         arguments["config_file"] = os.path.join(arguments["model_path"], 'config.json')
 
-
     try:
         with open(arguments["config_file"]) as configFile:
             config = json.load(configFile)
@@ -107,7 +107,7 @@ def loadConfig(arguments):
         config = {}
 
     if len(arguments["test_set"]) > 0:
-        config["validationDataSources"] = [{ "type" : "TrainingSetSource",
+        config["validationDataSources"] = [{ "type" : "TextDataSource",
                                              "path" : arguments["test_set"] }]
 
 
@@ -128,6 +128,7 @@ def overrideConfig(config, arguments):
                 localConfig = localConfig[component]
 
 def runLocally(arguments):
+    import numpy
 
     numpy.set_printoptions(precision=3, linewidth=150)
 
@@ -145,8 +146,6 @@ def runLocally(arguments):
 
             if not "predictor" in config:
                 config["predictor"] = {}
-
-            config["predictor"]["checkpointPath"] = arguments["model_path"]
 
             if "model" in config:
                 config["model"]["directory"] = arguments["model_path"]

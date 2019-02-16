@@ -18,7 +18,7 @@ class DataSources:
     def addSource(self, source):
         adaptor = AdaptorFactory(self.config).create(source)
 
-        self.sources[len(self.sources)] = adaptor
+        self.sources.append(adaptor)
 
 
 
