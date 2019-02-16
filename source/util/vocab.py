@@ -20,6 +20,20 @@ def isToken(token):
 
     return False
 
+def addToken(vocab, tokenBuffer):
+    if len(tokenBuffer) == 0:
+        return
+
+    token = ''.join(tokenBuffer)
+
+    if not token in vocab:
+        vocab[token] = len(vocab)
+
+    del tokenBuffer[:]
+
+def isSingleCharacterToken(character):
+    return not character.isalnum()
+
 def saveVocab(dataset, size, directory):
     import os
     vocab = createInitialVocab()
@@ -29,12 +43,18 @@ def saveVocab(dataset, size, directory):
     tokenBuffer = []
 
     for i in range(size):
-        tokenBuffer.append(dataset.next())
-        token = ''.join(tokenBuffer)
-        if isToken(token):
-            tokenBuffer = []
-            if not token in vocab:
-                vocab[token] = len(vocab)
+        nextCharacter = dataset.next()
+
+        if isSingleCharacterToken(nextCharacter):
+            addToken(vocab, tokenBuffer)
+            tokenBuffer.append(nextCharacter)
+            addToken(vocab, tokenBuffer)
+            continue
+
+        tokenBuffer.append(nextCharacter)
+        possibleToken = ''.join(tokenBuffer)
+        if isToken(possibleToken):
+            addToken(vocab, tokenBuffer)
 
     if not os.path.exists(directory):
         os.makedirs(directory)
