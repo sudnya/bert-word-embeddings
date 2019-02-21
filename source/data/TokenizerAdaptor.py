@@ -1,30 +1,28 @@
 
 
+from models.Vocab import Vocab
+
+import logging
+
+logger = logging.getLogger(__name__)
+
 class TokenizerAdaptor:
     def __init__(self, config, source):
         self.config = config
         self.source = source
         self.buffer = []
-        self.vocab, self.maxTokenSize = self.loadVocab()
+        self.vocab = self.loadVocab()
+
+    def loadVocab(self):
+        return Vocab(self.config)
 
     def next(self):
         self.fillBuffer()
         return self.matchBestToken()
 
-    def loadVocab(self):
-        vocab = {}
-        with open(self.getVocabPath(), "r") as vocabFile:
-            for line in vocabFile:
-                vocab[line] = len(vocab)
-
-        return vocab, maxTokenSize
-
     def fillBuffer(self):
-        while len(self.buffer) < self.maxTokenSize:
-            self.buffer.append(self.source.getNextCharacter())
-
-    def getVocabPath(self):
-        return self.config["model"]["vocab"]
+        while len(self.buffer) < self.vocab.getMaximumTokenSize():
+            self.buffer.append(self.source.next())
 
     def matchBestToken(self):
         token = self.tryMatchBestToken()
@@ -43,13 +41,16 @@ class TokenizerAdaptor:
 
     def tryMatchBestToken(self):
         # try to match the biggest
-        for i in range(0, self.maxTokenSize):
-            start = len(self.buffer) - i - 1
-            possibleToken = self.buffer[start:]
+        for i in range(0, self.vocab.getMaximumTokenSize()):
+            end = len(self.buffer) - i - 1
+            possibleToken = "".join(self.buffer[:end])
+            #logger.debug("trying string: '" + possibleToken + "'")
 
-            if possibleToken in self.vocab:
-                del self.buffer[start:]
-                return possibleToken
+            if self.vocab.contains(possibleToken):
+                del self.buffer[:end]
+                token = self.vocab.getToken(possibleToken)
+                logger.debug("string: '" + possibleToken + "' -> " + str(token))
+                return token
 
         return None
 

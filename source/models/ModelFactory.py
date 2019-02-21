@@ -14,5 +14,8 @@ class ModelFactory:
         if self.modelName == "RandomModel":
             return RandomModel(self.config)
 
+        if self.modelName == "UnigramModel":
+            return UnigramModel(self.config, self.trainingData, self.validationData)
+
         raise RuntimeError("Unknown model name " + self.modelName)
 
