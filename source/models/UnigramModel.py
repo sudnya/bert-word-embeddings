@@ -1,5 +1,10 @@
 
 from models.Vocab import Vocab
+from models.ModelDescriptionCheckpointer import ModelDescriptionCheckpointer
+
+import numpy
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +26,8 @@ class UnigramModel:
 
             self.checkpoint()
 
-    def runOnTrainingDataset(epoch):
+    def runOnTrainingDataset(self, epoch):
+        import time
         trainStart = time.time()
 
         for step in range(self.getStepsPerEpoch()):
@@ -44,7 +50,7 @@ class UnigramModel:
 
         trainEnd = time.time()
 
-        logger.debug(message)
+        print(message)
         logger.debug(" Training took: " + (str(trainEnd - trainStart)) + " seconds...")
 
     def trainingStep(self, inputs, labels):
@@ -58,7 +64,9 @@ class UnigramModel:
 
                 self.tokenCounts[token] += 1
 
-    def runOnValidationDataset(epoch):
+    def runOnValidationDataset(self, epoch):
+        import time
+
         start = time.time()
 
         for step in range(self.getValidationStepsPerEpoch()):
@@ -75,16 +83,18 @@ class UnigramModel:
             message = ("Epoch (" + str(epoch) + " / " + str(self.getEpochs()) +
                 "), Step (" + str(step) + " / " + str(self.getValidationStepsPerEpoch()) +
                 "), Generator time: " + ("%.2f" % (generatorEnd - generatorStart)) +
-                ", validation step time: " + ("%.2f" % (stepEnd - stepStart)))
+                ", validation step time: " + ("%.2f" % (stepEnd - stepStart)) +
+                ", loss is " + str(crossEntropy/tokens))
 
             print(message, end="\r", flush=True)
 
         end = time.time()
 
-        logger.debug(message)
+        print(message)
         logger.debug(" Validation took: " + (str(end - start)) + " seconds...")
 
     def validationStep(self, inputs, labels):
+        import math
         crossEntropy = 0.0
         for batch in range(labels.shape[0]):
             for token in range(labels.shape[1]):
@@ -93,22 +103,34 @@ class UnigramModel:
 
         return crossEntropy, labels.shape[0] * labels.shape[1]
 
-    def getOrloadModel(self):
+    def getTokenProbability(self, token):
+        count = 0
+        if token in self.tokenCounts:
+            count = self.tokenCounts[token]
+        # TODO: Implement enhanced good-turing smoothing
+        return (count + 1.0) / (self.totalTokens + 1.0)
+
+    def getOrLoadModel(self):
+        import os
+
         self.vocab = Vocab(self.config)
 
         shouldCreate = not os.path.exists(
             self.checkpointer.getModelDirectory()) or self.shouldCreateModel()
 
         if shouldCreate:
-            return self.createModel()
+            self.createModel()
         else:
-            return self.load()
+            self.load()
 
     def createModel(self):
-        self.tokenCounts = numpy.zeros(self.getVocabSize())
+        self.tokenCounts = numpy.zeros(self.vocab.getSize())
         self.totalTokens = 0
 
     def checkpoint(self):
+        import json
+        import os
+        import shutil
 
         directory = self.checkpointer.getModelDirectory()
         logger.debug("Saving checkpoint to: " + str(directory))
@@ -121,9 +143,9 @@ class UnigramModel:
 
             shutil.move(directory, tempDirectory)
 
-        os.mkdirs(directory)
+        os.makedirs(directory)
         with open(os.path.join(directory, "unigram-statistics.json"), "w") as jsonFile:
-            json.dump([self.totalTokens, self.tokenCounts], jsonFile)
+            json.dump([self.totalTokens, [i for i in self.tokenCounts]], jsonFile)
 
         if exists:
             shutil.rmtree(tempDirectory)
@@ -135,5 +157,19 @@ class UnigramModel:
         directory = self.checkpointer.getModelDirectory()
 
         logger.debug("Loading checkpoint from: " + str(directory))
+
+    def getEpochs(self):
+        return int(self.config["model"]["epochs"])
+
+    def getStepsPerEpoch(self):
+        return int(self.config["model"]["stepsPerEpoch"])
+
+    def getValidationStepsPerEpoch(self):
+        return int(self.config["model"]["validationStepsPerEpoch"])
+
+    def shouldRunValidation(self):
+        if not "runValidation" in self.config["model"]:
+            return True
+        return bool(self.config["model"]["runValidation"])
 
 

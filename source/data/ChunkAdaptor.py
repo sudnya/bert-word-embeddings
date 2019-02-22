@@ -17,7 +17,7 @@ class ChunkAdaptor:
         if not "size" in self.config["adaptor"]["chunking"]:
             return 16
 
-        int(self.config["adaptor"]["chunking"]["size"])
+        return int(self.config["adaptor"]["chunking"]["size"])
 
 
 

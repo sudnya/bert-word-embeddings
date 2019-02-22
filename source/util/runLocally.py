@@ -124,11 +124,20 @@ def loadConfig(arguments):
     if not "adaptor" in config:
         config["adaptor"] = {}
 
-    config["adaptor"]["tokenizer"] = {}
-    config["adaptor"]["chunking"] = {}
-    config["adaptor"]["labels"] = {}
-    config["adaptor"]["batching"] = {}
-    config["adaptor"]["cache"] = { }
+    if not "tokenizer" in config["adaptor"]:
+        config["adaptor"]["tokenizer"] = {}
+
+    if not "chunking" in config["adaptor"]:
+        config["adaptor"]["chunking"] = {}
+
+    if not "labels" in config["adaptor"]:
+        config["adaptor"]["labels"] = {}
+
+    if not "batching" in config["adaptor"]:
+        config["adaptor"]["batching"] = {}
+
+    if not "cache" in config["adaptor"]:
+        config["adaptor"]["cache"] = { }
 
     return config
 

@@ -65,7 +65,7 @@ class TokenizerAdaptor:
         return ord(character) > 127
 
     def expandOneUnicodeCharacter(self):
-        for character, index in enumerate(self.buffer):
+        for index, character in enumerate(self.buffer):
             if self.isUnicode(character):
                 self.buffer = self.buffer[:index] + list(repr(character)) + self.buffer[index + 1:]
                 break

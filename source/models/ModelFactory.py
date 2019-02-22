@@ -1,5 +1,6 @@
 
 from models.RandomModel import RandomModel
+from models.UnigramModel import UnigramModel
 
 class ModelFactory:
     def __init__(self, config, *, modelName="RandomModel",
