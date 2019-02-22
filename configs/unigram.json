@@ -2,7 +2,7 @@
     "model" :
     {
         "type" : "UnigramModel",
-        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab.txt",
+        "vocab" : "vocab.txt",
         "epochs" : 10,
         "stepsPerEpoch" : 10000,
         "runValidation" : true,
@@ -19,14 +19,14 @@
     [
         {
             "type" : "TextDataSource",
-            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/000.txt"
+            "path" : "~/datasets/guttenberg-splits/000.txt"
         }
     ],
     "validationDataSources" :
     [
         {
             "type" : "TextDataSource",
-            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/000.txt"
+            "path" : "~/datasets/guttenberg-splits/199.txt"
         }
     ]
 
