@@ -84,7 +84,7 @@ def main():
                "it will not be used.")
     parser.add_argument("--make-test-set", default=False, action="store_true",
         help = "Create a test set from the validation set.")
-    parser.add_argument("--test-set-size", default=20,
+    parser.add_argument("--test-set-size", default=0,
         help = "The number of batches to use from the validation set.")
     parser.add_argument("--test-set", default="",
         help = "The path to the test set to run on.")

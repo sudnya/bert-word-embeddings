@@ -26,9 +26,9 @@ class Predictor:
 
             predictions = self.model.predict(inputs)
 
-            inputs, predictions = self.rewriteSplitTokens(inputs, labels, predictions)
+            inputs, predictions, vocabProbabilities = self.rewriteSplitTokens(inputs, labels, predictions)
 
-            self.recordPredictions(perplexityStates, predictions, inputs)
+            self.recordPredictions(perplexityStates, predictions, vocabProbabilities, inputs)
 
         return self.getPerplexity(perplexityStates)
 
@@ -59,7 +59,7 @@ class Predictor:
 
         return 2.0 ** (totalEntropy / tokenCount)
 
-    def recordPredictions(self, perplexityStates, predictions, inputs):
+    def recordPredictions(self, perplexityStates, predictions, vocabProbabilities, inputs):
         # predictions is Tensor(batch-size, sequence-length, vocab-size)
         # inputs is Tensor(batch-size, sequence-length)
         batchSize = predictions.shape[0]
@@ -69,7 +69,8 @@ class Predictor:
         for batch in range(batchSize):
             for element in range(sequenceLength):
                 labelPrediction = predictions[batch, element]
-                perplexityStates[batch].addPrediction(inputs[batch, element], labelPrediction)
+                perplexityStates[batch].addPrediction(inputs[batch, element], labelPrediction,
+                    vocabProbabilities[batch, element, :])
 
     def isSingleCharacterToken(self, token):
         if Vocab.isReservedToken(token):
@@ -82,6 +83,7 @@ class Predictor:
 
         newInputs = []
         newPredictions = []
+        newVocabProbabilities = []
 
         batchSize = predictions.shape[0]
         sequenceLength = predictions.shape[1]
@@ -91,8 +93,8 @@ class Predictor:
             index = 0
 
             newBatchInputs = []
-            newBatchLabels = []
             newBatchPredictions = []
+            newBatchVocabProbabilities = []
 
             while index < sequenceLength:
                 token = labels[batch, index]
@@ -110,6 +112,8 @@ class Predictor:
 
                 # add token
                 newBatchInputs.append([index, tokenEndIndex])
+                newBatchVocabProbabilities.append(list(predictions[batch, index, :]))
+                newBatchVocabProbabilities[-1][labels[batch, index]] = 0.0
 
                 # compute new probabilities for the merged token
                 predictionValues = [predictions[batch, index, label] for label in labels[batch, index:tokenEndIndex]]
@@ -119,14 +123,16 @@ class Predictor:
 
             newInputs.append(newBatchInputs)
             newPredictions.append(newBatchPredictions)
+            newVocabProbabilities.append(newBatchVocabProbabilities)
 
         # pad
         maxLength = max([len(tokens) for tokens in newInputs])
 
         newInputs = [inputs + [self.getPadToken() for i in range(maxLength - len(inputs))] for inputs in newInputs]
         newPredictions = [predictions + [0.0 for i in range(maxLength - len(predictions))] for predictions in newPredictions]
+        newVocabProbabilties = [predictions + [0.0 for i in range(maxLength - len(predictions))] for predictions in newVocabProbabilities]
 
-        return numpy.array(newInputs), numpy.array(newPredictions)
+        return numpy.array(newInputs), numpy.array(newPredictions), numpy.array(newVocabProbabilities)
 
 class PerplexityState:
     def __init__(self, vocab):
@@ -140,7 +146,7 @@ class PerplexityState:
     def getEntropy(self):
         return self.entropy
 
-    def addPrediction(self, inputTokens, correctLabelPrediction):
+    def addPrediction(self, inputTokens, correctLabelPrediction, vocabProbabilities):
         import math
 
         for inputToken in inputTokens:
@@ -151,6 +157,7 @@ class PerplexityState:
                 return
 
         entropy = -math.log(correctLabelPrediction)
+        entropy += sum([-math.log(1.0 - p) for p in vocabProbabilities])
 
         self.entropy += entropy
         self.tokenCount += 1

@@ -115,10 +115,12 @@ def loadConfig(arguments):
             config["model"] = {}
 
         config["model"]["vocab"] = arguments["vocab_path"]
+        config["model"]["type"] = arguments["model_path"]
 
     if not "predictor" in config:
         config["predictor"] = {}
 
+    if int(arguments["test_set_size"]) > 0:
         config["predictor"]["iterations"] = int(arguments["test_set_size"])
 
     if not "adaptor" in config:

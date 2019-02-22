@@ -3,10 +3,10 @@
     {
         "type" : "UnigramModel",
         "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab.txt",
-        "epochs" : 10,
+        "epochs" : 1,
         "stepsPerEpoch" : 10000,
         "runValidation" : true,
-        "validationStepsPerEpoch" : 100
+        "validationStepsPerEpoch" : 1000
     },
     "adaptor" :
     {

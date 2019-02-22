@@ -3,11 +3,11 @@ from models.RandomModel import RandomModel
 from models.UnigramModel import UnigramModel
 
 class ModelFactory:
-    def __init__(self, config, *, modelName="RandomModel",
+    def __init__(self, config, *,
         trainingData=None, validationData=None):
 
         self.config = config
-        self.modelName = modelName
+        self.modelName = config["model"]["type"]
         self.validationData = validationData
         self.trainingData = trainingData
 

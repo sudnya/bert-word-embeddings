@@ -13,6 +13,16 @@ class CacheAdaptor:
 
         self.iterations = None
 
+    def reset(self):
+        self.iterations = None
+        self.source.reset()
+
+    def size(self):
+        return self.source.size() * self.getReuse()
+
+    def setMaximumSize(self, size):
+        self.source.setMaximumSize(size // self.getReuse())
+
     def next(self):
         self.refillCache()
 

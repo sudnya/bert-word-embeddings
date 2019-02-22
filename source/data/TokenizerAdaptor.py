@@ -12,6 +12,31 @@ class TokenizerAdaptor:
         self.source = source
         self.buffer = []
         self.vocab = self.loadVocab()
+        self.maximumSize = None
+        self.tokenCount = None
+
+    def getTokenCount(self):
+        count = 0
+
+        logger.info("Scanning token count...")
+
+        try:
+            while True:
+                token = self.next()
+                count += 1
+                if count % 1e6 == 0:
+                    logger.info(" " + str(count))
+
+                if not self.maximumSize is None:
+                    if count >= self.maximumSize:
+                        break
+        except ValueError:
+            pass
+
+        logger.info("Scanning token count..." + str(count))
+
+        return count
+
 
     def loadVocab(self):
         return Vocab(self.config)
@@ -22,7 +47,10 @@ class TokenizerAdaptor:
 
     def fillBuffer(self):
         while len(self.buffer) < self.vocab.getMaximumTokenSize():
-            self.buffer.append(self.source.next())
+            character = self.source.next()
+            if len(character) == 0:
+                break
+            self.buffer.append(character)
 
     def matchBestToken(self):
         token = self.tryMatchBestToken()
@@ -36,12 +64,12 @@ class TokenizerAdaptor:
             if not token is None:
                 return token
 
-        raise ValueError("Could not find token in buffer '" + self.buffer + "'")
+        raise ValueError("Could not find token in buffer '" + str(self.buffer) + "'")
 
 
     def tryMatchBestToken(self):
         # try to match the biggest
-        for i in range(0, self.vocab.getMaximumTokenSize()):
+        for i in range(0, len(self.buffer)):
             end = len(self.buffer) - i - 1
             possibleToken = "".join(self.buffer[:end])
             #logger.debug("trying string: '" + possibleToken + "'")
@@ -67,9 +95,20 @@ class TokenizerAdaptor:
     def expandOneUnicodeCharacter(self):
         for index, character in enumerate(self.buffer):
             if self.isUnicode(character):
-                self.buffer = self.buffer[:index] + list(repr(character)) + self.buffer[index + 1:]
+                self.buffer = self.buffer[:index] + list(
+                    repr(character.encode('unicode-escape'))) + self.buffer[index + 1:]
                 break
 
+    def size(self):
+        if self.tokenCount is None:
+            self.tokenCount = self.getTokenCount()
+        return self.tokenCount
+
+    def reset(self):
+        self.source.reset()
+
+    def setMaximumSize(self, size):
+        self.maximumSize = size
 
 
 
