@@ -110,6 +110,34 @@ def loadConfig(arguments):
         config["validationDataSources"] = [{ "type" : "TextDataSource",
                                              "path" : arguments["test_set"] }]
 
+    if len(arguments["vocab_path"]) > 0:
+        if not "model" in config:
+            config["model"] = {}
+
+        config["model"]["vocab"] = arguments["vocab_path"]
+
+    if not "predictor" in config:
+        config["predictor"] = {}
+
+        config["predictor"]["iterations"] = int(arguments["test_set_size"])
+
+    if not "adaptor" in config:
+        config["adaptor"] = {}
+
+    if not "tokenizer" in config["adaptor"]:
+        config["adaptor"]["tokenizer"] = {}
+
+    if not "chunking" in config["adaptor"]:
+        config["adaptor"]["chunking"] = {}
+
+    if not "labels" in config["adaptor"]:
+        config["adaptor"]["labels"] = {}
+
+    if not "batching" in config["adaptor"]:
+        config["adaptor"]["batching"] = {}
+
+    if not "cache" in config["adaptor"]:
+        config["adaptor"]["cache"] = { }
 
     return config
 

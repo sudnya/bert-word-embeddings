@@ -85,11 +85,13 @@ def main():
     parser.add_argument("--make-test-set", default=False, action="store_true",
         help = "Create a test set from the validation set.")
     parser.add_argument("--test-set-size", default=20,
-        help = "The number of graphs to sample from the validation set.")
+        help = "The number of batches to use from the validation set.")
     parser.add_argument("--test-set", default="",
         help = "The path to the test set to run on.")
     parser.add_argument("--vocab-size", default=10000,
         help = "The number of tokens to include in the vocab.")
+    parser.add_argument("--vocab-path", default="",
+        help = "Set the vocab path explicitly.")
     parser.add_argument("--make-vocab", default=False, action="store_true",
         help = "Make a vocab file for the validation set.")
     parser.add_argument("-o", "--output-directory", default="test-set",
