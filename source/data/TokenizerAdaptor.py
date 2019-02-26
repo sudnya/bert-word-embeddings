@@ -15,28 +15,6 @@ class TokenizerAdaptor:
         self.maximumSize = None
         self.tokenCount = None
 
-    def getTokenCount(self):
-        count = 0
-
-        logger.info("Scanning token count...")
-
-        try:
-            while True:
-                token = self.next()
-                count += 1
-                if count % 1e6 == 0:
-                    logger.info(" " + str(count))
-
-                if not self.maximumSize is None:
-                    if count >= self.maximumSize:
-                        break
-        except ValueError:
-            pass
-
-        logger.info("Scanning token count..." + str(count))
-
-        return count
-
 
     def loadVocab(self):
         return Vocab(self.config)
@@ -109,6 +87,28 @@ class TokenizerAdaptor:
 
     def setMaximumSize(self, size):
         self.maximumSize = size
+
+    def getTokenCount(self):
+        count = 0
+
+        logger.info("Scanning token count...")
+
+        try:
+            while True:
+                token = self.next()
+                count += 1
+                if count % 1e6 == 0:
+                    logger.info(" " + str(count))
+
+                if not self.maximumSize is None:
+                    if count >= self.maximumSize:
+                        break
+        except ValueError:
+            pass
+
+        logger.info("Scanning token count..." + str(count))
+
+        return count
 
 
 

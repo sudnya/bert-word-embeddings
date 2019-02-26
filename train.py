@@ -94,6 +94,8 @@ def main():
         help = "Set the vocab path explicitly.")
     parser.add_argument("--make-vocab", default=False, action="store_true",
         help = "Make a vocab file for the validation set.")
+    parser.add_argument("--use-unk-tokenizer", default=False, action="store_true",
+        help = "Use the UNK-Tokenizer.")
     parser.add_argument("-o", "--output-directory", default="test-set",
         help = "The output directory the save the test set or vocab file.")
 

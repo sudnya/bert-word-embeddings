@@ -1,0 +1,45 @@
+{
+    "model" :
+    {
+        "type" : "UnigramModel",
+        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab.txt",
+        "epochs" : 1,
+        "stepsPerEpoch" : 10000,
+        "runValidation" : true,
+        "validationStepsPerEpoch" : 1000
+    },
+    "adaptor" :
+    {
+        "chunking" :
+        {
+            "size" : 32
+        },
+        "unk-tokenizer" :
+        {
+
+        }
+    },
+    "trainingDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/000.txt"
+        }
+    ],
+    "validationDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/001.txt"
+        }
+    ]
+
+
+}
+
+
+
+
+
+
+

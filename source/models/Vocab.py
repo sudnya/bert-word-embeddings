@@ -32,12 +32,16 @@ class Vocab:
 
     def getToken(self, string):
         #print(self.vocab)
-        return self.vocab[string]
-
+        if string in self.vocab:
+            return self.vocab[string]
+        return Vocab.getUnkToken()
     def getTokenString(self, token):
         for string, tokenId in self.vocab.items():
             if tokenId == token:
                 return string
+
+        if token == Vocab.getUnkToken():
+            return "<UNK>"
 
         if token < Vocab.getVocabOffset():
             return "RESERVED_" + str(token)
@@ -46,7 +50,7 @@ class Vocab:
 
     @staticmethod
     def getVocabOffset():
-        return 2
+        return 3
 
     @staticmethod
     def getClassLabelToken():
@@ -55,6 +59,10 @@ class Vocab:
     @staticmethod
     def getMaskToken():
         return 1
+
+    @staticmethod
+    def getUnkToken():
+        return 2
 
     @staticmethod
     def isReservedToken(token):
