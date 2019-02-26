@@ -20,6 +20,17 @@ class DataSources:
 
         self.sources.append(adaptor)
 
+    def reset(self):
+        for source in self.sources:
+            source.reset()
+
+    def size(self):
+        return sum([source.size() for source in self.sources])
+
+    def setMaximumSize(self, size):
+        for source in self.sources:
+            source.setMaximumSize(size//len(self.sources))
+
 
 
 

@@ -19,5 +19,14 @@ class ChunkAdaptor:
 
         return int(self.config["adaptor"]["chunking"]["size"])
 
+    def size(self):
+        return self.source.size() // self.getChunkSize()
+
+    def reset(self):
+        self.source.reset()
+
+    def setMaximumSize(self, size):
+        self.source.setMaximumSize(size * self.getChunkSize())
+
 
 

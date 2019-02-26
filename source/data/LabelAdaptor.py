@@ -40,4 +40,13 @@ class LabelAdaptor:
 
         return int(self.config["adaptor"]["labels"]["seed"])
 
+    def reset(self):
+        return self.source.reset()
+
+    def size(self):
+        return self.source.size()
+
+    def setMaximumSize(self, size):
+        self.source.setMaximumSize(size)
+
 

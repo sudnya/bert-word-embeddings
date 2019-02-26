@@ -2,7 +2,7 @@
     "model" :
     {
         "type" : "UnigramModel",
-        "vocab" : "~/datasets/vocab/vocab.txt",
+        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab.txt",
         "epochs" : 1,
         "stepsPerEpoch" : 10000,
         "runValidation" : true,
@@ -13,25 +13,30 @@
         "chunking" :
         {
             "size" : 32
+        },
+        "unk-tokenizer" :
+        {
+
         }
     },
     "trainingDataSources" :
     [
         {
             "type" : "TextDataSource",
-            "path" : "~/datasets/guttenberg-splits/000.txt"
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/000.txt"
         }
     ],
     "validationDataSources" :
     [
         {
             "type" : "TextDataSource",
-            "path" : "~/datasets/guttenberg-splits/199.txt"
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/001.txt"
         }
     ]
 
 
 }
+
 
 
 

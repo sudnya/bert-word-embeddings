@@ -15,13 +15,22 @@ class UnigramModel:
         self.validationData = validationData
         self.checkpointer = ModelDescriptionCheckpointer(config, "UnigramModel")
 
+        if not self.trainingData is None:
+            self.trainingData.setMaximumSize(int(self.config["model"]["stepsPerEpoch"]))
+
+        if not self.validationData is None:
+            self.validationData.setMaximumSize(int(self.config["model"]["validationStepsPerEpoch"]))
+
         self.getOrLoadModel()
 
     def train(self):
         for epoch in range(self.getEpochs()):
+            self.trainingData.reset()
+
             self.runOnTrainingDataset(epoch)
 
             if self.shouldRunValidation():
+                self.trainingData.reset()
                 self.runOnValidationDataset(epoch)
 
             self.checkpoint()
@@ -48,6 +57,7 @@ class UnigramModel:
 
             print(message, end="\r", flush=True)
 
+
         trainEnd = time.time()
 
         print(message)
@@ -59,15 +69,15 @@ class UnigramModel:
             self.totalTokens += labels.shape[1]
 
             for token in range(labels.shape[1]):
-                if not token in self.tokenCounts:
-                    self.tokenCounts[token] = 0
-
-                self.tokenCounts[token] += 1
+                self.tokenCounts[labels[batch, token]] += 1
 
     def runOnValidationDataset(self, epoch):
         import time
 
         start = time.time()
+
+        totalCrossEntropy = 0.0
+        totalTokens = 0
 
         for step in range(self.getValidationStepsPerEpoch()):
             generatorStart = time.time()
@@ -88,26 +98,28 @@ class UnigramModel:
 
             print(message, end="\r", flush=True)
 
+            totalCrossEntropy += crossEntropy
+            totalTokens += tokens
+
         end = time.time()
 
         print(message)
-        logger.debug(" Validation took: " + (str(end - start)) + " seconds...")
+        logger.debug(" Validation took: " + (str(end - start)) + " seconds... cross entropy is " +
+            str(totalCrossEntropy/totalTokens))
 
     def validationStep(self, inputs, labels):
         import math
         crossEntropy = 0.0
         for batch in range(labels.shape[0]):
             for token in range(labels.shape[1]):
-                tokenProbability = self.getTokenProbability(token)
+                tokenProbability = self.getTokenProbability(labels[batch, token])
                 crossEntropy += -math.log(tokenProbability)
 
         return crossEntropy, labels.shape[0] * labels.shape[1]
 
     def getTokenProbability(self, token):
-        count = 0
-        if token in self.tokenCounts:
-            count = self.tokenCounts[token]
-        # TODO: Implement enhanced good-turing smoothing
+        count = self.tokenCounts[token]
+        # TODO: Implement kneser ney smoothing
         return (count + 1.0) / (self.totalTokens + 1.0)
 
     def getOrLoadModel(self):
@@ -116,7 +128,7 @@ class UnigramModel:
         self.vocab = Vocab(self.config)
 
         shouldCreate = not os.path.exists(
-            self.checkpointer.getModelDirectory()) or self.shouldCreateModel()
+            self.checkpointer.getModelDirectory()) or self.getShouldCreateModel()
 
         if shouldCreate:
             self.createModel()
@@ -150,22 +162,44 @@ class UnigramModel:
         if exists:
             shutil.rmtree(tempDirectory)
 
+    def predict(self, inputs):
+        batchSize = inputs.shape[0]
+        length = inputs.shape[1]
+        vocab = self.getVocab().getSize()
+
+        probs = [self.getTokenProbability(token) for token in range(vocab)]
+
+        return numpy.broadcast_to(numpy.array(probs), [batchSize, length, vocab])
 
     def load(self):
+        import os
+        import json
+
         self.checkpointer.load()
 
         directory = self.checkpointer.getModelDirectory()
 
         logger.debug("Loading checkpoint from: " + str(directory))
+        with open(os.path.join(directory, "unigram-statistics.json"), "r") as jsonFile:
+            self.totalTokens, counts = json.load(jsonFile)
+            self.tokenCounts = numpy.array(counts)
+
+    def getVocab(self):
+        return self.vocab
 
     def getEpochs(self):
         return int(self.config["model"]["epochs"])
 
+    def getShouldCreateModel(self):
+        if not "createNewModel" in self.config["model"]:
+            return False
+        return bool(self.config["model"]["createNewModel"])
+
     def getStepsPerEpoch(self):
-        return int(self.config["model"]["stepsPerEpoch"])
+        return min(int(self.config["model"]["stepsPerEpoch"]), self.trainingData.size())
 
     def getValidationStepsPerEpoch(self):
-        return int(self.config["model"]["validationStepsPerEpoch"])
+        return min(int(self.config["model"]["validationStepsPerEpoch"]), self.validationData.size())
 
     def shouldRunValidation(self):
         if not "runValidation" in self.config["model"]:

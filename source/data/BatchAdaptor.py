@@ -18,5 +18,14 @@ class BatchAdaptor:
         return int(self.config["adaptor"]["batching"]["size"])
 
 
+    def size(self):
+        return self.source.size() // self.getBatchSize()
+
+    def reset(self):
+        return self.source.reset()
+
+    def setMaximumSize(self, size):
+        self.source.setMaximumSize(size * self.getBatchSize())
+
 
 

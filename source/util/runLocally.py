@@ -6,6 +6,7 @@ import logging
 import shutil
 
 from models.ModelFactory import ModelFactory
+from models.Vocab import Vocab
 from inference.Predictor import Predictor
 from data.DataSources import DataSources
 from data.DataSourceFactory import DataSourceFactory
@@ -43,22 +44,20 @@ def getValidationData(config):
     return getData(config["validationDataSources"], config)
 
 def getModel(config, trainingData, validationData):
-    return ModelFactory(config, modelName=config["model"]["type"],
+    return ModelFactory(config,
         trainingData=trainingData, validationData=validationData).create()
 
 def getPredictor(config, validationData):
     return Predictor(config, validationData)
 
-def saveData(validationData, tokenCount, directory):
+def saveData(validationData, tokenCount, directory, vocab):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    generator = validationData.getGraphGenerator()
-
-    with open(os.path.join(directory, "data.txt")) as outputFile:
+    with open(os.path.join(directory, "data.txt"), "w") as outputFile:
         for i in range(tokenCount):
-            token = generator.getNextToken()
-            outputFile.write(token.getString())
+            token = validationData.next()
+            outputFile.write(vocab.getTokenString(token))
 
 def nameDirectory(directory):
     extension = 0
@@ -115,29 +114,49 @@ def loadConfig(arguments):
             config["model"] = {}
 
         config["model"]["vocab"] = arguments["vocab_path"]
+        config["model"]["type"] = arguments["model_path"]
 
     if not "predictor" in config:
         config["predictor"] = {}
 
+    if int(arguments["test_set_size"]) > 0:
         config["predictor"]["iterations"] = int(arguments["test_set_size"])
 
     if not "adaptor" in config:
         config["adaptor"] = {}
 
-    if not "tokenizer" in config["adaptor"]:
-        config["adaptor"]["tokenizer"] = {}
+    if arguments["make_vocab"]:
+        if not "unlimited-vocab-tokenizer" in config["adaptor"]:
+            config["adaptor"]["unlimited-vocab-tokenizer"] = {}
+    elif arguments["make_test_set"]:
+        if (not "tokenizer" in config["adaptor"] and
+            not "unk-tokenizer" in config["adaptor"] and
+            not "unlimited-vocab-tokenizer" in config["adaptor"]):
+            if arguments["use_unk_tokenizer"]:
+                config["adaptor"]["unk-tokenizer"] = {}
+            else:
+                config["adaptor"]["tokenizer"] = {}
 
-    if not "chunking" in config["adaptor"]:
-        config["adaptor"]["chunking"] = {}
+    else:
+        if (not "tokenizer" in config["adaptor"] and
+            not "unk-tokenizer" in config["adaptor"] and
+            not "unlimited-vocab-tokenizer" in config["adaptor"]):
+            if arguments["use_unk_tokenizer"]:
+                config["adaptor"]["unk-tokenizer"] = {}
+            else:
+                config["adaptor"]["tokenizer"] = {}
 
-    if not "labels" in config["adaptor"]:
-        config["adaptor"]["labels"] = {}
+        if not "chunking" in config["adaptor"]:
+            config["adaptor"]["chunking"] = {}
 
-    if not "batching" in config["adaptor"]:
-        config["adaptor"]["batching"] = {}
+        if not "labels" in config["adaptor"]:
+            config["adaptor"]["labels"] = {}
 
-    if not "cache" in config["adaptor"]:
-        config["adaptor"]["cache"] = { }
+        if not "batching" in config["adaptor"]:
+            config["adaptor"]["batching"] = {}
+
+        if not "cache" in config["adaptor"]:
+            config["adaptor"]["cache"] = { }
 
     return config
 
@@ -188,7 +207,7 @@ def runLocally(arguments):
             validationData = getValidationData(config)
 
             saveData(validationData, int(arguments["test_set_size"]),
-                arguments["output_directory"])
+                arguments["output_directory"], Vocab(config))
 
         elif arguments["make_vocab"]:
             validationData = getValidationData(config)

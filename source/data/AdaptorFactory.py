@@ -1,6 +1,9 @@
 
 
 from data.TokenizerAdaptor import TokenizerAdaptor
+from data.UnkTokenizerAdaptor import UnkTokenizerAdaptor
+from data.UnlimitedVocabTokenizerAdaptor import UnlimitedVocabTokenizerAdaptor
+
 from data.CacheAdaptor import CacheAdaptor
 from data.ChunkAdaptor import ChunkAdaptor
 from data.BatchAdaptor import BatchAdaptor
@@ -16,9 +19,16 @@ class AdaptorFactory:
 
     def create(self, source):
         logger.debug("Creating adaptors for dataset.")
+
         if self.hasTokenizer():
-            logger.debug(" tokenizer")
+            logger.debug(" fallback-tokenizer")
             source = TokenizerAdaptor(self.config, source)
+        elif self.hasUnkTokenizer():
+            logger.debug(" unk-tokenizer")
+            source = UnkTokenizerAdaptor(self.config, source)
+        elif self.hasUnlimitedVocabTokenizer():
+            logger.debug(" unlimited-vocab-tokenizer")
+            source = UnlimitedVocabTokenizerAdaptor(source)
 
         if self.usesChunks():
             logger.debug(" chunker")
@@ -43,6 +53,24 @@ class AdaptorFactory:
             return False
 
         if not "tokenizer" in self.config["adaptor"]:
+            return False
+
+        return True
+
+    def hasUnkTokenizer(self):
+        if not "adaptor" in self.config:
+            return False
+
+        if not "unk-tokenizer" in self.config["adaptor"]:
+            return False
+
+        return True
+
+    def hasUnlimitedVocabTokenizer(self):
+        if not "adaptor" in self.config:
+            return False
+
+        if not "unlimited-vocab-tokenizer" in self.config["adaptor"]:
             return False
 
         return True

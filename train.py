@@ -84,7 +84,7 @@ def main():
                "it will not be used.")
     parser.add_argument("--make-test-set", default=False, action="store_true",
         help = "Create a test set from the validation set.")
-    parser.add_argument("--test-set-size", default=20,
+    parser.add_argument("--test-set-size", default=0,
         help = "The number of batches to use from the validation set.")
     parser.add_argument("--test-set", default="",
         help = "The path to the test set to run on.")
@@ -94,6 +94,8 @@ def main():
         help = "Set the vocab path explicitly.")
     parser.add_argument("--make-vocab", default=False, action="store_true",
         help = "Make a vocab file for the validation set.")
+    parser.add_argument("--use-unk-tokenizer", default=False, action="store_true",
+        help = "Use the UNK-Tokenizer.")
     parser.add_argument("-o", "--output-directory", default="test-set",
         help = "The output directory the save the test set or vocab file.")
 
