@@ -1,4 +1,5 @@
 
+from models.LinearModel import LinearModel
 from models.RandomModel import RandomModel
 from models.UnigramModel import UnigramModel
 
@@ -12,6 +13,8 @@ class ModelFactory:
         self.trainingData = trainingData
 
     def create(self):
+        if self.modelName == "LinearModel":
+            return LinearModel(self.config, self.trainingData, self.validationData)
         if self.modelName == "RandomModel":
             return RandomModel(self.config)
 
