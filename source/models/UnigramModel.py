@@ -77,7 +77,7 @@ class UnigramModel:
         start = time.time()
 
         totalCrossEntropy = 0.0
-        totalTokens = 0
+        totalBytes = 0
 
         for step in range(self.getValidationStepsPerEpoch()):
             generatorStart = time.time()
@@ -87,7 +87,7 @@ class UnigramModel:
             generatorEnd = time.time()
 
             stepStart = time.time()
-            crossEntropy, tokens = self.validationStep(inputs, labels)
+            crossEntropy, byteCount = self.validationStep(inputs, labels)
             stepEnd = time.time()
 
             message = ("Epoch (" + str(epoch) + " / " + str(self.getEpochs()) +
@@ -99,23 +99,26 @@ class UnigramModel:
             print(message, end="\r", flush=True)
 
             totalCrossEntropy += crossEntropy
-            totalTokens += tokens
+            totalBytes += byteCount
 
         end = time.time()
 
         print(message)
         logger.debug(" Validation took: " + (str(end - start)) + " seconds... cross entropy is " +
-            str(totalCrossEntropy/totalTokens))
+            str(totalCrossEntropy/totalBytes))
 
     def validationStep(self, inputs, labels):
         import math
         crossEntropy = 0.0
+        byteCount = 0
         for batch in range(labels.shape[0]):
-            for token in range(labels.shape[1]):
-                tokenProbability = self.getTokenProbability(labels[batch, token])
+            for index in range(labels.shape[1]):
+                token = labels[batch, token]
+                tokenProbability = self.getTokenProbability(token)
                 crossEntropy += -math.log(tokenProbability)
+                byteCount = self.vocab.getTokenBytes()
 
-        return crossEntropy, labels.shape[0] * labels.shape[1]
+        return crossEntropy, byteCount
 
     def getTokenProbability(self, token):
         count = self.tokenCounts[token]

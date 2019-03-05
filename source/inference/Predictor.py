@@ -26,14 +26,18 @@ class Predictor:
 
             logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
-            predictions = self.model.predict(inputs)
+            predictions = self.model.predict(inputs,
+                self.evaluator.getRequestedPrecditions(inputs, labels))
 
             self.evaluator.evaluate(inputs, labels, predictions)
 
         return self.evaluator.finalize()
 
     def getIterations(self):
-        return int(self.config["predictor"]["iterations"])
+        if "iterations" in self.config["predictor"]:
+            return int(self.config["predictor"]["iterations"])
+
+        return int(self.config["model"]["validation-steps-per-epoch"])
 
     def loadModel(self):
         return ModelFactory(self.config).create()

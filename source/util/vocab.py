@@ -6,28 +6,50 @@ def createInitialVocab():
 
     # handle all of ascii
     for i in range(127):
-        vocab[chr(i)] = len(vocab) + Vocab.getVocabOffset()
+        vocab[chr(i)] = 0
 
     return vocab
 
+import logging
+logger = logging.getLogger(__name__)
+
 def saveVocab(dataset, size, directory):
     import os
+    import time
 
     vocab = createInitialVocab()
 
-    outputPath = os.path.join(directory, "vocab.txt")
+    if os.path.isdir(directory):
+        outputPath = os.path.join(directory, "vocab.txt")
 
-    for i in range(size):
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    else:
+        outputPath = directory
+
+    previousVocabSize = 0
+
+    start = time.time()
+
+    while True:
         string = dataset.next()
-        assert len(string) > 0
+        if len(string) == 0:
+            break
         if not string in vocab:
-            vocab[string] = len(vocab) + Vocab.getVocabOffset()
+            vocab[string] = 0
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+        vocab[string] += 1
+
+        if len(vocab) + Vocab.getVocabOffset() >= previousVocabSize + size * 0.01:
+            previousVocabSize = len(vocab) + Vocab.getVocabOffset()
+            logger.debug("Vocab size is " + str(previousVocabSize) + " time so far: " +
+                str(time.time() - start))
+
+        if len(vocab) + Vocab.getVocabOffset() >= size:
+            break
 
     with open(outputPath, "w", encoding='utf-8') as outputFile:
-        for token in vocab.keys():
+        for token, count in reversed(sorted(vocab.items(), key=lambda x: x[1])):
             if token[-1] != '\n':
                 token += '\n'
             outputFile.write(token)

@@ -18,7 +18,7 @@ class AdaptorFactory:
         self.config = config
 
     def create(self, source):
-        logger.debug("Creating adaptors for dataset.")
+        logger.debug("Creating adaptors for dataset " + source.getName())
 
         if self.hasTokenizer():
             logger.debug(" fallback-tokenizer")

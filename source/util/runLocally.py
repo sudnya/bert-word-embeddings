@@ -56,8 +56,11 @@ def saveData(validationData, tokenCount, directory, vocab):
 
     with open(os.path.join(directory, "data.txt"), "w") as outputFile:
         for i in range(tokenCount):
-            token = validationData.next()
-            outputFile.write(vocab.getTokenString(token))
+            try:
+                token = validationData.next()
+                outputFile.write(vocab.getTokenString(token))
+            except:
+                pass
 
 def nameDirectory(directory):
     extension = 0

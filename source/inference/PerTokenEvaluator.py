@@ -1,10 +1,11 @@
 class PerTokenEvaluator:
     def __init__(self, config):
         self.config = config
+        self.vocab = Vocab(config)
 
     def initialize(self):
         self.entropy = 0.0
-        self.tokens = 0
+        self.totalBytes = 0
 
     def evaluate(self, inputs, labels, predictions):
         import math
@@ -14,13 +15,12 @@ class PerTokenEvaluator:
 
         for batch in range(batchSize):
             for token in range(sequenceLength):
-                probabilities = list(predictions[batch, token, :])
-                probabilities[labels[batch, token]] = 1.0 - probabilities[labels[batch, token]]
+                p = probabilities[labels[batch, token]]
+                tokenBytes = self.vocab.getBytesPerToken(token)
 
-                self.entropy += sum([-math.log(1.0 - p) for p in probabilities])
-
-        self.tokens += batchSize * sequenceLength
+                self.entropy += (-math.log(p)) / tokenBytes
+                self.totalBytes += tokenBytes
 
     def finalize(self):
-        return 2**(self.entropy/self.tokens)
+        return 2**(self.entropy/self.totalBytes)
 

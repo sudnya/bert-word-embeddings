@@ -18,9 +18,9 @@ class FallbackTokenEvaluator:
         self.perplexityStates = self.createPerplexityStates(self.getBatchSize())
 
     def evaluate(self, inputs, labels, predictions):
-        inputs, predictions, vocabProbabilities = self.rewriteSplitTokens(inputs, labels, predictions)
+        inputIndices, predictions, vocabProbabilities = self.rewriteSplitTokens(inputs, labels, predictions)
 
-        self.recordPredictions(predictions, vocabProbabilities, inputs)
+        self.recordPredictions(predictions, vocabProbabilities, inputIndices, inputs)
 
     def finalize(self):
         return self.getPerplexity()
@@ -41,12 +41,12 @@ class FallbackTokenEvaluator:
         return [PerplexityState(self.vocab) for i in range(count)]
 
     def getPerplexity(self):
-        tokenCount = sum([state.getTokenCount() for state in self.perplexityStates])
+        byteCount = sum([state.getByteCount() for state in self.perplexityStates])
         totalEntropy = sum([state.getEntropy() for state in self.perplexityStates])
 
-        return 2.0 ** (totalEntropy / tokenCount)
+        return 2.0 ** (totalEntropy / byteCount)
 
-    def recordPredictions(self, predictions, vocabProbabilities, inputs):
+    def recordPredictions(self, predictions, vocabProbabilities, inputIndices, inputs):
         # predictions is Tensor(batch-size, sequence-length, vocab-size)
         # inputs is Tensor(batch-size, sequence-length)
         batchSize = predictions.shape[0]
@@ -56,7 +56,8 @@ class FallbackTokenEvaluator:
         for batch in range(batchSize):
             for element in range(sequenceLength):
                 labelPrediction = predictions[batch, element]
-                self.perplexityStates[batch].addPrediction(inputs[batch, element], labelPrediction,
+                self.perplexityStates[batch].addPrediction(inputs[batch, :],
+                    inputIndices[batch, element], labelPrediction,
                     vocabProbabilities[batch, element, :])
 
     def rewriteSplitTokens(self, inputs, labels, predictions):
@@ -79,7 +80,8 @@ class FallbackTokenEvaluator:
 
             completeTokens = [tokenizer.next() for i in range(tokenizer.size())]
 
-            logger.debug("Reformed input string: '" + str([self.vocab.getTokenString(token) for token in labels[batch, :] if not Vocab.isReservedToken(token)]))
+            logger.debug("Reformed input string: '" + str([self.vocab.getTokenString(token) for
+                token in labels[batch, :] if not Vocab.isReservedToken(token)]))
             logger.debug( "' tokenized to: " + str(completeTokens))
             logger.debug(" tokens: " + str([self.vocab.getToken(token) for token in completeTokens]))
 
@@ -136,31 +138,26 @@ class FallbackTokenEvaluator:
 
 class PerplexityState:
     def __init__(self, vocab):
-        self.tokenCount = 0
-        self.entropy    = 0.0
-        self.vocab      = vocab
+        self.byteCount = 0
+        self.entropy   = 0.0
+        self.vocab     = vocab
 
-    def getTokenCount(self):
-        return self.tokenCount
+    def getByteCount(self):
+        return self.byteCount
 
     def getEntropy(self):
         return self.entropy
 
-    def addPrediction(self, inputTokens, correctLabelPrediction, vocabProbabilities):
+    def addPrediction(self, inputTokens, inputIndices, correctLabelPrediction, vocabProbabilities):
         import math
 
-        for inputToken in inputTokens:
-            found = False
-            if self.isPredictedToken(inputToken):
-                found = True
-            if found:
-                return
+        assert correctLabelPrediction > 0.0, ("Prediction is zero for input tokens: " +
+            str(inputTokens) + " with predictions " + str(vocabProbabilities))
 
         entropy = -math.log(correctLabelPrediction)
-        entropy += sum([-math.log(1.0 - p) for p in vocabProbabilities])
 
         self.entropy += entropy
-        self.tokenCount += 1
+        self.byteCount += sum([self.vocab.getTokenBytes(inputTokens[index]) for index in range(inputIndices[0], inputIndices[1])])
 
     def isPredictedToken(self, token):
         return token == Vocab.getMaskToken() or token == Vocab.getVocabOffset()

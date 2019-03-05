@@ -15,7 +15,6 @@ class TokenizerAdaptor:
         self.maximumSize = None
         self.tokenCount = None
 
-
     def loadVocab(self):
         return Vocab(self.config)
 
@@ -48,7 +47,7 @@ class TokenizerAdaptor:
     def tryMatchBestToken(self):
         # try to match the biggest
         for i in range(0, len(self.buffer)):
-            end = len(self.buffer) - i - 1
+            end = len(self.buffer) - i
             possibleToken = "".join(self.buffer[:end])
             #logger.debug("trying string: '" + possibleToken + "'")
 

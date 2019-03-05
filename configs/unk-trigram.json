@@ -2,7 +2,7 @@
     "model" :
     {
         "type" : "NgramModel",
-        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab-guttenberg-1k.txt",
+        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab.txt",
         "epochs" : 1,
         "steps-per-epoch" : 10000,
         "run-validation" : true,
@@ -15,6 +15,10 @@
         "chunking" :
         {
             "size" : 32
+        },
+        "unk-tokenizer" :
+        {
+
         }
     },
     "trainingDataSources" :

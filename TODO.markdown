@@ -3,6 +3,13 @@
 Goal 1: Implement a LM (embeddings) training pipeline
 
 1. Create a vocab that can handle every word (e.g. using a tokenizer with fallback)
+    Hypothesis: Using <UNK> discards information in the tail (and there is a lot of it).
+        Main message: Use fallback in deep net LMs, not <UNK>
+        TODO: Build NGRAM model (stretch build BERT model)
+        TODO: Run on big dataset (all of guttenberg, lots of reddit, Tieba) for vocabs (10, 100, 1k, 10k, 100k, 1M) (ETA is 1TB in 1 day on 30 CPUs)
+        TODO: Compare perplexity with and without <UNK> tokenizer
+        TODO: Compare compression (LZMA) with and without <UNK> tokenizer
+        TODO: Recompute lower bounds on perplexity using Shannon's method rectangular disitrbution, using these models on these datasets. How does <UNK> change the bound? Compare to Shannon's results.
 2. Build a simple model for predicting the word using context (e.g. forward/backward using BERT)
 3. Add a class based implementation of the vocab
 4. Train on a basic dataset, report perplexity

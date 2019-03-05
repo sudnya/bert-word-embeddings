@@ -218,6 +218,23 @@ class NgramModel:
         self.ngramTotalCounts = [0 for i in range(self.getMaximumNgramLength())]
         self.ngramTotalCounts[0] = self.vocab.getSize()
 
+    def predict(self, inputs):
+        batchSize = inputs.shape[0]
+        length = inputs.shape[1]
+
+        probs = numpy.zeros([batchSize, length, self.vocab.getSize()])
+
+        for batch in range(batchSize):
+            ngramBuffer = []
+            for index in range(length):
+                for token in range(self.vocab.getSize()):
+                    localNgram = list(ngramBuffer)
+                    self.addTokenToNgram(localNgram, token)
+                    probs[batch, index, token] = self.getNgramProbability(tuple(localNgram))
+                self.addTokenToNgram(ngramBuffer, inputs[batch, index])
+
+        return probs
+
     def checkpoint(self):
         import json
         import os
@@ -243,19 +260,12 @@ class NgramModel:
 
     def getSerializedData(self):
         return [self.ngramTotalCounts,
-            self.keysToStrings(self.ngramChildCounts), self.keysToStrings(self.ngramCounts)]
+            self.keysToStrings(self.ngramChildCounts),
+            self.keysToStrings(self.ngramPrefixCounts),
+            self.keysToStrings(self.ngramCounts)]
 
     def keysToStrings(self, dictionary):
         return {str(k) : v for k,v in dictionary.items()}
-
-    def predict(self, inputs):
-        batchSize = inputs.shape[0]
-        length = inputs.shape[1]
-        vocab = self.getVocab().getSize()
-
-        probs = [self.getTokenProbability(token) for token in range(vocab)]
-
-        return numpy.broadcast_to(numpy.array(probs), [batchSize, length, vocab])
 
     def load(self):
         import os
@@ -267,7 +277,16 @@ class NgramModel:
 
         logger.debug("Loading checkpoint from: " + str(directory))
         with open(os.path.join(directory, "ngram-statistics.json"), "r") as jsonFile:
-            self.ngramTotalCounts, self.ngramChildCounts, self.ngramCounts = json.load(jsonFile)
+            ngramTotalCounts, ngramChildCounts, ngramPrefixCounts, ngramCounts = json.load(jsonFile)
+
+            self.ngramTotalCounts = ngramTotalCounts
+            self.ngramChildCounts = self.keysToTuples(ngramChildCounts)
+            self.ngramPrefixCounts = self.keysToTuples(ngramPrefixCounts)
+            self.ngramCounts = self.keysToTuples(ngramCounts)
+
+    def keysToTuples(self, dictionary):
+        from ast import literal_eval as make_tuple
+        return {make_tuple(key) : value for key, value in dictionary.items()}
 
     def getVocab(self):
         return self.vocab

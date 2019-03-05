@@ -48,6 +48,9 @@ class Vocab:
 
         raise RuntimeError("invalid token " + str(token))
 
+    def getTokenBytes(self, token):
+        return len(self.getTokenString(token).encode('utf-8'))
+
     @staticmethod
     def getVocabOffset():
         return 3
