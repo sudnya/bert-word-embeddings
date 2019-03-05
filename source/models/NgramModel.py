@@ -56,11 +56,13 @@ class NgramModel:
                 "), Generator time: " + ("%.2f" % (generatorEnd - generatorStart)) +
                 ", training step time: " + ("%.2f" % (trainStepEnd - trainStepStart)))
 
-            print(message, end="\r", flush=True)
+            if self.shouldPrintStatus():
+                print(message, end="\r", flush=True)
 
         trainEnd = time.time()
 
-        print(message)
+        if self.shouldPrintStatus():
+            print(message)
         logger.debug(" Training took: " + (str(trainEnd - trainStart)) + " seconds...")
 
     def trainingStep(self, inputs, labels):
@@ -126,14 +128,16 @@ class NgramModel:
                 ", validation step time: " + ("%.2f" % (stepEnd - stepStart)) +
                 ", loss is " + str(crossEntropy/tokens))
 
-            print(message, end="\r", flush=True)
+            if self.shouldPrintStatus():
+                print(message, end="\r", flush=True)
 
             totalCrossEntropy += crossEntropy
             totalTokens += tokens
 
         end = time.time()
 
-        print(message)
+        if self.shouldPrintStatus():
+            print(message)
         logger.debug(" Validation took: " + (str(end - start)) + " seconds... cross entropy is " +
             str(totalCrossEntropy/totalTokens))
 
@@ -315,6 +319,12 @@ class NgramModel:
 
     def getDiscountValue(self):
         return float(self.config["model"]["discount-value"])
+
+    def shouldPrintStatus(self):
+        if "should-print-status" in self.config["model"]:
+            return str(self.config["model"]["should-print-status"]) == "True"
+
+        return True
 
 
 
