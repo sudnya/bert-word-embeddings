@@ -222,19 +222,22 @@ class NgramModel:
         self.ngramTotalCounts = [0 for i in range(self.getMaximumNgramLength())]
         self.ngramTotalCounts[0] = self.vocab.getSize()
 
-    def predict(self, inputs):
-        batchSize = inputs.shape[0]
-        length = inputs.shape[1]
+    def predict(self, inputs, requestedPredictions):
+        batchSize = requestedPredictions.shape[0]
+        length = requestedPredictions.shape[1]
+        outputs = requestedPredictions.shape[2]
 
-        probs = numpy.zeros([batchSize, length, self.vocab.getSize()])
+        probs = numpy.zeros(requestedPredictions.shape)
 
         for batch in range(batchSize):
             ngramBuffer = []
             for index in range(length):
-                for token in range(self.vocab.getSize()):
-                    localNgram = list(ngramBuffer)
+                localNgram = list(ngramBuffer)
+                for output in range(outputs):
+                    token = requestedPredictions[batch, index, output]
                     self.addTokenToNgram(localNgram, token)
-                    probs[batch, index, token] = self.getNgramProbability(tuple(localNgram))
+                    probs[batch, index] = self.getNgramProbability(tuple(localNgram))
+
                 self.addTokenToNgram(ngramBuffer, inputs[batch, index])
 
         return probs

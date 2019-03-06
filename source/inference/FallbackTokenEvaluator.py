@@ -22,6 +22,9 @@ class FallbackTokenEvaluator:
 
         self.recordPredictions(predictions, vocabProbabilities, inputIndices, inputs)
 
+    def getRequestedPredictions(self, inputs, labels):
+        return numpy.expand_dims(labels, axis=2)
+
     def finalize(self):
         return self.getPerplexity()
 
@@ -105,18 +108,20 @@ class FallbackTokenEvaluator:
                             if self.vocab.getToken(completeTokens[completeTokenIndex + 1]) == possibleToken:
                                 break
                         tokenEndIndex += 1
-                    if tokenEndIndex > (index + 1):
-                        logger.debug("Reformed split tokens: " + str([self.vocab.getTokenString(token)
-                            for token in labels[batch, index:tokenEndIndex]]))
 
                 # add token
                 newBatchInputs.append([index, tokenEndIndex])
                 newBatchVocabProbabilities.append(list(predictions[batch, index, :]))
-                newBatchVocabProbabilities[-1][labels[batch, index]] = 0.0
+                newBatchVocabProbabilities[-1][0] = 0.0
 
                 # compute new probabilities for the merged token
-                predictionValues = [predictions[batch, index, label] for label in labels[batch, index:tokenEndIndex]]
+                predictionValues = predictions[batch, index:tokenEndIndex, 0]
                 newBatchPredictions.append(reduce(lambda x, y : x * y, predictionValues))
+
+                if tokenEndIndex > (index + 1):
+                    logger.debug("Reformed split tokens: " + str([self.vocab.getTokenString(token)
+                        for token in labels[batch, index:tokenEndIndex]]) + (" with prob: %.4f" %
+                        newBatchPredictions[-1]))
 
                 if not index in reservedIndices:
                     completeTokenIndex += 1

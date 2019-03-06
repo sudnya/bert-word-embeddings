@@ -27,7 +27,7 @@ class Predictor:
             logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
             predictions = self.model.predict(inputs,
-                self.evaluator.getRequestedPrecditions(inputs, labels))
+                self.evaluator.getRequestedPredictions(inputs, labels))
 
             self.evaluator.evaluate(inputs, labels, predictions)
 

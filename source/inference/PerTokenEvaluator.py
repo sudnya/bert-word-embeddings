@@ -21,6 +21,9 @@ class PerTokenEvaluator:
                 self.entropy += (-math.log(p)) / tokenBytes
                 self.totalBytes += tokenBytes
 
+    def getRequestedPredictions(self, inputs, labels):
+        return numpy.expand_dims(labels, axis=2)
+
     def finalize(self):
         return 2**(self.entropy/self.totalBytes)
 
