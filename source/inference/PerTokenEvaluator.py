@@ -1,3 +1,5 @@
+from models.Vocab import Vocab
+
 class PerTokenEvaluator:
     def __init__(self, config):
         self.config = config
@@ -15,13 +17,14 @@ class PerTokenEvaluator:
 
         for batch in range(batchSize):
             for token in range(sequenceLength):
-                p = probabilities[labels[batch, token]]
-                tokenBytes = self.vocab.getBytesPerToken(token)
+                p = predictions[batch, token, 0]
+                tokenBytes = self.vocab.getTokenBytes(token)
 
                 self.entropy += (-math.log(p)) / tokenBytes
                 self.totalBytes += tokenBytes
 
     def getRequestedPredictions(self, inputs, labels):
+        import numpy
         return numpy.expand_dims(labels, axis=2)
 
     def finalize(self):

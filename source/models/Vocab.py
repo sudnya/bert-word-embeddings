@@ -13,8 +13,9 @@ class Vocab:
                     string = line[0:-1]
                 else:
                     string = line
-                vocab[string] = len(vocab) + Vocab.getVocabOffset()
-                maxTokenSize = max(maxTokenSize, len(string))
+                if not string in vocab:
+                    vocab[string] = len(vocab) + Vocab.getVocabOffset()
+                    maxTokenSize = max(maxTokenSize, len(string))
 
         return vocab, maxTokenSize
 
@@ -35,16 +36,17 @@ class Vocab:
         if string in self.vocab:
             return self.vocab[string]
         return Vocab.getUnkToken()
-    def getTokenString(self, token):
-        for string, tokenId in self.vocab.items():
-            if tokenId == token:
-                return string
 
+    def getTokenString(self, token):
         if token == Vocab.getUnkToken():
             return "<UNK>"
 
         if token < Vocab.getVocabOffset():
             return "RESERVED_" + str(token)
+
+        for string, tokenId in self.vocab.items():
+            if tokenId == token:
+                return string
 
         raise RuntimeError("invalid token " + str(token))
 

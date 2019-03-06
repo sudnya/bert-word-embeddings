@@ -36,7 +36,12 @@ class TextDataSource:
 
     def getFiles(self):
         import os
+
+        if os.path.isfile(self.getPath()):
+            return [self.getPath()]
+
         allFiles = []
+
         for root, directories, files in os.walk(self.getPath()):
             allFiles += [os.path.join(root, f) for f in files]
 
