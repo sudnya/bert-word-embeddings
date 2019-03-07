@@ -2,15 +2,15 @@
 import os
 import subprocess
 
-datasets = ["guttenberg", "wikipedia"]
+datasets = ["guttenberg-splits", "wikipedia"]
 vocabDatasets = ["guttenberg", "wikipedia"]
 vocabSizes = ["1k", "4k", "16k", "256k", "1m"]
 dataSizes = [2**20//4, 2**24//4, 2**28//4]
 unkModes = [("-unk", "--use-unk-tokenizer"), ("", "")]
 
 workspace = "compression-experiments"
-#datasetRoot = "/data/1tb-ssd/language"
-datasetRoot = "/Users/gregorydiamos/checkout/bursty-lm/data"
+datasetRoot = "/data/1tb-ssd/language"
+#datasetRoot = "/Users/gregorydiamos/checkout/bursty-lm/data"
 
 def getLog():
     return open(os.path.join(workspace, "log"), "w+")
@@ -68,11 +68,11 @@ def countBytes(compressedPath):
 
 def runExperiment(dataset, vocabDataset, vocabSize, dataSize, unkMode):
 
-    workspacePath = os.path.join(workspace, vocabDataset + "-vocab-" + vocabSize +
+    workspacePath = os.path.join(workspace, dataset + "-" + vocabDataset + "-vocab-" + vocabSize +
         "-datasize-" + str(dataSize) + unkMode[0])
     compressedPath = workspacePath + ".lzma"
     datasetPath = os.path.join(datasetRoot, "training", dataset)
-    vocabPath = os.path.join(datasetRoot, "vocabs", "vocab-" + dataset + "-" + vocabSize + ".txt")
+    vocabPath = os.path.join(datasetRoot, "training", "vocabs", "vocab-" + vocabDataset + "-" + vocabSize + ".txt")
 
     fileSize = runTokenizer(datasetPath, vocabPath, dataSize, unkMode[1], workspacePath)
     runCompressor(workspacePath)
