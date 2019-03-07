@@ -86,6 +86,8 @@ def main():
         help = "Create a test set from the validation set.")
     parser.add_argument("--test-set-size", default=0,
         help = "The number of batches to use from the validation set.")
+    parser.add_argument("--test-set-size-bytes", default=0,
+        help = "The number of bytes to use from the validation set.")
     parser.add_argument("--test-set", default="",
         help = "The path to the test set to run on.")
     parser.add_argument("--vocab-size", default=10000,

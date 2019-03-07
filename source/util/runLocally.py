@@ -54,13 +54,40 @@ def saveData(validationData, tokenCount, directory, vocab):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    with open(os.path.join(directory, "data.txt"), "w") as outputFile:
+    if os.path.isfile(directory):
+        path = directory
+    else:
+        path = os.path.join(directory, "data.txt")
+
+    with open(path, "w") as outputFile:
         for i in range(tokenCount):
             try:
                 token = validationData.next()
                 outputFile.write(vocab.getTokenString(token))
             except:
                 pass
+
+def saveDataBytes(validationData, byteCount, directory, vocab):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    if os.path.isfile(directory):
+        path = directory
+    else:
+        path = os.path.join(directory, "data.txt")
+
+    with open(path, "w") as outputFile:
+        totalBytes = 0
+        try:
+            while True:
+                token = validationData.next()
+                outputFile.write(vocab.getTokenString(token))
+                totalBytes += vocab.getTokenBytes(token)
+
+                if totalBytes >= byteCount:
+                    break
+        except:
+            pass
 
 def nameDirectory(directory):
     extension = 0
@@ -124,6 +151,9 @@ def loadConfig(arguments):
 
     if int(arguments["test_set_size"]) > 0:
         config["predictor"]["iterations"] = int(arguments["test_set_size"])
+
+    if int(arguments["test_set_size_bytes"]) > 0:
+        config["predictor"]["bytes"] = int(arguments["test_set_size_bytes"])
 
     if not "adaptor" in config:
         config["adaptor"] = {}
@@ -209,8 +239,13 @@ def runLocally(arguments):
         elif arguments["make_test_set"]:
             validationData = getValidationData(config)
 
-            saveData(validationData, int(arguments["test_set_size"]),
-                arguments["output_directory"], Vocab(config))
+            if int(arguments["test_set_size"]) > 0:
+                saveData(validationData, int(arguments["test_set_size"]),
+                    arguments["output_directory"], Vocab(config))
+            else:
+                assert int(arguments["test_set_size_bytes"]) > 0
+                saveDataBytes(validationData, int(arguments["test_set_size_bytes"]),
+                    arguments["output_directory"], Vocab(config))
 
         elif arguments["make_vocab"]:
             validationData = getValidationData(config)
