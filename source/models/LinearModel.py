@@ -30,6 +30,7 @@ class LinearModel:
         self.graph = tf.Graph()
         self.session = tf.Session(graph=self.graph)
         self.checkpointer = ModelDescriptionCheckpointer(config, "LinearModel")
+        self.isLoaded = False
         
 
 
@@ -51,6 +52,28 @@ class LinearModel:
             self.checkpoint()
 
 
+    def predict(self, inputs, requestedPredictions):
+        with self.graph.as_default():
+            self.getOrLoadModel()
+        
+
+        inputs = numpy.array(inputs)
+
+        predictions = self.session.run(self.outputProbabilities, 
+                feed_dict={self.inputTokens : inputs})
+        
+        batchSize = requestedPredictions.shape[0]
+        length = requestedPredictions.shape[1]
+
+        outputPredictions = numpy.zeros(requestedPredictions.shape)
+        
+        for b in range(batchSize):
+            for l in range(length):
+                outputPredictions[b,l,:] = \
+                    predictions[b,l,requestedPredictions[b,l,:]]
+        return outputPredictions
+        
+
     def getOrLoadModel(self):
         """Returns a linear model.
 
@@ -69,13 +92,32 @@ class LinearModel:
     
     def loadModel(self):
         """Loads an already existing model from the specified path """
+        if self.isLoaded:
+            return
+
         self.checkpointer.load()
 
         directory = self.checkpointer.getModelDirectory()
 
         logger.debug("Loading checkpoint from: " + str(directory))
-        assert False, "not implemented"
 
+        tf.saved_model.loader.load(
+            self.session,
+            ["serve"],
+            directory
+        )
+
+        self.setOperationsByName()
+
+        self.isLoaded = True
+
+    def setOperationsByName(self):
+        self.inputTokens = self.graph.get_tensor_by_name("input-tokens:0")
+        self.labels = self.graph.get_tensor_by_name("output-labels:0")
+        self.outputProbabilities = \
+            self.graph.get_tensor_by_name("output-probabilities:0")
+        self.loss = self.graph.get_tensor_by_name("loss:0")
+        self.optimizerStep = self.graph.get_operation_by_name("optimizer-step")
 
 
     def createModel(self):
@@ -86,9 +128,10 @@ class LinearModel:
         self.labels = tf.placeholder(tf.int32, shape=(None, None), 
                 name="output-labels")
 
-        batchOutputs = self.processInputMiniBatch(self.inputTokens)
-        self.predictedLabels = batchOutputs
-        self.loss = self.evaluateLoss(batchOutputs, self.labels)
+        predictedLogits = self.processInputMiniBatch(self.inputTokens)
+        self.loss = self.evaluateLoss(predictedLogits, self.labels)
+        self.outputProbabilities = tf.nn.softmax(predictedLogits,
+                name="output-probabilities")
 
         # optimizer
         self.optimizerStep = self.createOptimizerStep(self.loss)
@@ -233,10 +276,10 @@ class LinearModel:
 
 
     def evaluateLoss(self, batchOutputs, labels):
-        return tf.losses.sparse_softmax_cross_entropy(
+        return tf.identity(tf.losses.sparse_softmax_cross_entropy(
             labels=labels,
             logits=batchOutputs
-        )
+        ), name="loss")
 
 
     def processInputMiniBatch(self, inputs):
@@ -294,7 +337,7 @@ class LinearModel:
             tf.saved_model.simple_save(self.session,
                 directory,
                 inputs={"input-tokens" : self.inputTokens},
-                outputs={"predictions" : self.predictedLabels})
+                outputs={"output-probabilities" : self.outputProbabilities})
 
         if exists:
             shutil.rmtree(tempDirectory)
@@ -312,6 +355,12 @@ class LinearModel:
     def getEpochs(self):
         return int(self.config["model"]["epochs"])
     
+
+    def getShouldCreateModel(self):
+        if not "createNewModel" in self.config["model"]:
+            return False
+        return bool(self.config["model"]["createNewModel"])
+
     
     def getStepsPerEpoch(self):
         return int(self.config["model"]["stepsPerEpoch"])

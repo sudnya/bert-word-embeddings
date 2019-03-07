@@ -2,15 +2,14 @@
     "model" :
     {
         "type" : "LinearModel",
-        "vocab" : "/Users/sudnya-d/datasets/guttenberg-splits/vocab.txt",
+        "vocab" : "/Users/sudnya-d/datasets/vocabs/guttenberg-1K.txt",
         "epochs" : 1,
-        "stepsPerEpoch": 5,
         "embeddingSize" : 128,
-        "stepsPerEpoch" : 10000,
+        "stepsPerEpoch" : 100000,
         "learningRate": 0.001,
         "gradientClippingFactor": 10.0,
         "runValidation" : true,
-        "validationStepsPerEpoch" : 1000
+        "validationStepsPerEpoch" : 100
     },
     "adaptor" :
     {

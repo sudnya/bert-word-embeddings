@@ -302,7 +302,7 @@ class NgramModel:
         return int(self.config["model"]["epochs"])
 
     def getShouldCreateModel(self):
-        if not "createNewModel" in self.config["model"]:
+        if not "create-new-model" in self.config["model"]:
             return False
         return bool(self.config["model"]["create-new-model"])
 
