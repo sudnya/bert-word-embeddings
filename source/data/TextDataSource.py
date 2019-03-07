@@ -45,7 +45,7 @@ class TextDataSource:
         for root, directories, files in os.walk(self.getPath()):
             allFiles += [os.path.join(root, f) for f in files]
 
-        return allFiles
+        return sorted(allFiles)
 
 
 
