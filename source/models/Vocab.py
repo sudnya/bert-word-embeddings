@@ -2,10 +2,11 @@
 class Vocab:
     def __init__(self, config):
         self.config = config
-        self.vocab, self.maxTokenSize = self.loadVocab()
+        self.vocab, self.tokens, self.maxTokenSize = self.loadVocab()
 
     def loadVocab(self):
         vocab = {}
+        tokens = {}
         maxTokenSize = 0
         with open(self.getVocabPath(), "r") as vocabFile:
             for line in vocabFile:
@@ -14,10 +15,12 @@ class Vocab:
                 else:
                     string = line
                 if not string in vocab:
-                    vocab[string] = len(vocab) + Vocab.getVocabOffset()
+                    token = len(vocab) + Vocab.getVocabOffset()
+                    vocab[string] = token
+                    tokens[token] = string
                     maxTokenSize = max(maxTokenSize, len(string))
 
-        return vocab, maxTokenSize
+        return vocab, tokens, maxTokenSize
 
     def getVocabPath(self):
         return self.config["model"]["vocab"]
@@ -44,9 +47,8 @@ class Vocab:
         if token < Vocab.getVocabOffset():
             return "RESERVED_" + str(token)
 
-        for string, tokenId in self.vocab.items():
-            if tokenId == token:
-                return string
+        if token in tokens:
+            return tokens[token]
 
         raise RuntimeError("invalid token " + str(token))
 
