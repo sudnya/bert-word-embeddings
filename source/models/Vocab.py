@@ -47,8 +47,8 @@ class Vocab:
         if token < Vocab.getVocabOffset():
             return "RESERVED_" + str(token)
 
-        if token in tokens:
-            return tokens[token]
+        if token in self.tokens:
+            return self.tokens[token]
 
         raise RuntimeError("invalid token " + str(token))
 
