@@ -1,10 +1,14 @@
 {
     "model" :
     {
-        "type" : "UnigramModel",
-        "vocab" : "~/datasets/vocab/vocab.txt",
+        "type" : "LinearModel",
+        "vocab" : "/Users/sudnya-d/datasets/guttenberg-splits/vocab.txt",
         "epochs" : 1,
+        "stepsPerEpoch": 5,
+        "embeddingSize" : 128,
         "stepsPerEpoch" : 10000,
+        "learningRate": 0.001,
+        "gradientClippingFactor": 10.0,
         "runValidation" : true,
         "validationStepsPerEpoch" : 1000
     },
@@ -19,14 +23,14 @@
     [
         {
             "type" : "TextDataSource",
-            "path" : "~/datasets/guttenberg-splits/000.txt"
+            "path" : "/Users/sudnya-d/datasets/guttenberg-splits/000.txt"
         }
     ],
     "validationDataSources" :
     [
         {
             "type" : "TextDataSource",
-            "path" : "~/datasets/guttenberg-splits/199.txt"
+            "path" : "/Users/sudnya-d/datasets/guttenberg-splits/199.txt"
         }
     ]
 
