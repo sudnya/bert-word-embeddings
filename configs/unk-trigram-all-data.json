@@ -1,0 +1,47 @@
+{
+    "model" :
+    {
+        "type" : "NgramModel",
+        "vocab" : "/data/1tb-ssd/language/training/vocabs/vocab-guttenberg-1k.txt",
+        "epochs" : 1,
+        "steps-per-epoch" : 100000,
+        "run-validation" : true,
+        "max-ngram-length" : 3,
+        "validation-steps-per-epoch" : 1000,
+        "discount-value" : 0.9
+    },
+    "adaptor" :
+    {
+        "chunking" :
+        {
+            "size" : 32
+        },
+        "unk-tokenizer" :
+        {
+
+        }
+    },
+    "trainingDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/data/1tb-ssd/language/training"
+        }
+    ],
+    "validationDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/data/1tb-ssd/language/validation"
+        }
+    ]
+
+
+}
+
+
+
+
+
+
+
