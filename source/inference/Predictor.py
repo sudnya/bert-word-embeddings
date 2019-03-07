@@ -36,6 +36,9 @@ class Predictor:
     def getIterations(self):
         if "iterations" in self.config["predictor"]:
             return int(self.config["predictor"]["iterations"])
+        
+        if "validationStepsPerEpoch" in self.config["model"]:
+            return int(self.config["model"]["validationStepsPerEpoch"])
 
         return int(self.config["model"]["validation-steps-per-epoch"])
 
