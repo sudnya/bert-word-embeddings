@@ -28,7 +28,7 @@ class BERTModel:
         self.validationDataSource = validationDataSource
         self.graph = tf.Graph()
         self.session = tf.Session(graph=self.graph)
-        self.checkpointer = ModelDescriptionCheckpointer(config, "LinearModel")
+        self.checkpointer = ModelDescriptionCheckpointer(config, "BERTModel")
         self.isLoaded = False
         
 
@@ -317,7 +317,23 @@ class BERTModel:
 
     def projectEmbeddings(self, embeddings):
         #input -> m, seqL, embedding size
-        #output -> 3, m, numOfAttnHeads, seqL, embedding size
+        #output -> m, seqL, 3 * numberOfAttentionHeads * embedding size
+        retVal = tf.dense(embeddings,
+                units=3*self.getAttentionHeads()*embeddings.shape[-1])
+
+        return tf.reshape(retVal, [tf.shape(retVal)[0], tf.shape(retVal)[1], 3, 
+                self.getAttentionHeads(), embeddings.shape[-1])])
+
+
+    def attention(self, projectedEmbeddings):
+        #m, seqL, (Q, K, V), attentionHeads, embedding size
+        Q = projectedEmbeddings[:,:,0,:,:]
+        K = projectedEmbeddings[:,:,1,:,:]
+        V = projectedEmbeddings[:,:,2,:,:]
+        
+        m1 = tf.matmul(Q, K, transpose_b=True) / math.sqrt(d_k))
+        smx = tf.nn.softmax(m1)
+        return tf.matmul(smx, V)
 
     def checkpoint(self):
         """Creates a checkpoint of current model and saves to model
