@@ -3,6 +3,7 @@ from models.LinearModel import LinearModel
 from models.RandomModel import RandomModel
 from models.UnigramModel import UnigramModel
 from models.NgramModel import NgramModel
+from models.ClassTransformerModel import ClassTransformerModel
 
 class ModelFactory:
     def __init__(self, config, *,
@@ -16,6 +17,7 @@ class ModelFactory:
     def create(self):
         if self.modelName == "LinearModel":
             return LinearModel(self.config, self.trainingData, self.validationData)
+
         if self.modelName == "RandomModel":
             return RandomModel(self.config)
 
@@ -24,6 +26,9 @@ class ModelFactory:
 
         if self.modelName == "NgramModel":
             return NgramModel(self.config, self.trainingData, self.validationData)
+
+        if self.modelName == "ClassTransformerModel":
+            return ClassTransformerModel(self.config, self.trainingData, self.validationData)
 
         raise RuntimeError("Unknown model name " + self.modelName)
 

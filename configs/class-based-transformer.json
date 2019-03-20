@@ -1,0 +1,40 @@
+{
+    "model" :
+    {
+        "type" : "ClassTransformerModel",
+        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab-guttenberg-64k.txt",
+        "epochs" : 10,
+        "embedding-size" : 128,
+        "assignment-count" : 4,
+        "number-of-classes" : 400,
+        "steps-per-epoch" : 1000,
+        "learning-rate": 0.001,
+        "word-frequency-power-law-exponent" : 0.001,
+        "gradient-clipping-factor": 10.0,
+        "run-validation" : true,
+        "validation-steps-per-epoch" : 100
+    },
+    "adaptor" :
+    {
+        "chunking" :
+        {
+            "size" : 32
+        }
+    },
+    "trainingDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/training"
+        }
+    ],
+    "validationDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/validation"
+        }
+    ]
+
+
+}
