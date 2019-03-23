@@ -305,16 +305,18 @@ class BERTModel:
 
     def runEncoder(self, embeddings):
         for i in range(self.getLayerCount()):
-            embeddings = self.multiHeadedAttention(embeddings)
+            right = self.multiHeadedAttention(embeddings)
+            left = tf.layers.dense(right, units=embeddings.shape[-1])
+            embeddings = self.addAndNorm(left, right)
         return embeddings
 
 
     def multiHeadedAttention(self, embeddings):
         # Q,K,V are all -> projected embeddings
         projectedEmbeddings = self.projectEmbeddings(embeddings)
-        #tf.layers.dense(embeddings, self.getEmbeddingSize(), activation="relu")
         attentionResults = self.attention(projectedEmbeddings)
-        return self.projectAttentionOutput(attentionResults)
+        left = self.projectAttentionOutput(attentionResults)
+        return self.addAndNorm(left, embeddings)
 
     def projectEmbeddings(self, embeddings):
         #input -> m, seqL, embedding size
@@ -347,7 +349,7 @@ class BERTModel:
                 (batchSize, sequenceLength,
                         attentionResults.shape[-1]*attentionResults.shape[-2]))
         return tf.layers.dense(reshapedEmbeddings,
-                units=reshapedEmbeddings.shape[-1])
+                units=attentionResults.shape[-1])
 
 
     def addAndNorm(self, left, right):
