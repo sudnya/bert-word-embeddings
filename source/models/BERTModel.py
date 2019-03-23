@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import math
 import numpy
 import os
 import json
@@ -291,7 +292,7 @@ class BERTModel:
 
         # run encoder (encodedEmbeddings is (batch-size, sequence-length, hidden))
         encodedEmbeddings = self.runEncoder(inputEmbeddings)
-        return logits
+        return tf.layers.dense(encodedEmbeddings, units=self.vocab.getSize())
 
 
     def convertToEmbeddings(self, sequenceIds):
@@ -318,11 +319,11 @@ class BERTModel:
     def projectEmbeddings(self, embeddings):
         #input -> m, seqL, embedding size
         #output -> m, seqL, 3 * numberOfAttentionHeads * embedding size
-        retVal = tf.dense(embeddings,
+        retVal = tf.layers.dense(embeddings,
                 units=3*self.getAttentionHeads()*embeddings.shape[-1])
 
         return tf.reshape(retVal, [tf.shape(retVal)[0], tf.shape(retVal)[1], 3, 
-                self.getAttentionHeads(), embeddings.shape[-1])])
+                self.getAttentionHeads(), embeddings.shape[-1]])
 
 
     def attention(self, projectedEmbeddings):
@@ -330,10 +331,29 @@ class BERTModel:
         Q = projectedEmbeddings[:,:,0,:,:]
         K = projectedEmbeddings[:,:,1,:,:]
         V = projectedEmbeddings[:,:,2,:,:]
+        d_k = int(projectedEmbeddings.shape[-1])
         
-        m1 = tf.matmul(Q, K, transpose_b=True) / math.sqrt(d_k))
+        m1 = tf.matmul(Q, K, transpose_b=True) / math.sqrt(d_k)
         smx = tf.nn.softmax(m1)
         return tf.matmul(smx, V)
+
+    def projectAttentionOutput(self, attentionResults):
+        #attentionResults -> m, seqL, attentionHeads, embedding size
+#new shape is (batch, sequence length, heads * embedding-size)
+        batchSize = tf.shape(attentionResults)[0]
+        sequenceLength = tf.shape(attentionResults)[1]
+
+        reshapedEmbeddings = tf.reshape(attentionResults, 
+                (batchSize, sequenceLength,
+                        attentionResults.shape[-1]*attentionResults.shape[-2]))
+        return tf.layers.dense(reshapedEmbeddings,
+                units=reshapedEmbeddings.shape[-1])
+
+
+    def addAndNorm(self, left, right):
+        normalizedLeft = tf.contrib.layers.layer_norm(left)
+        return tf.add(normalizedLeft, right)
+
 
     def checkpoint(self):
         """Creates a checkpoint of current model and saves to model
@@ -386,12 +406,13 @@ class BERTModel:
     def getValidationStepsPerEpoch(self):
         return int(self.config["model"]["validationStepsPerEpoch"])
     
+    def getLayerCount(self):
+        return self.config["model"]["layerCount"]
+
+    def getAttentionHeads(self):
+        return self.config["model"]["attentionHeads"]
     
     def getExperimentDirectory(self):
         return self.config["model"]["directory"]
-    def __init__(self, config):
-        self.config = config
 
-    def train(self):
-        pass
 
