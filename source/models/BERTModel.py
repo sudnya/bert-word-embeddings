@@ -289,9 +289,10 @@ class BERTModel:
     def runBERT(self, inputSequence, historicSequence):
         # convert sequences to embeddings (output embeddings are Tensor(batch-size, sequence-length, hidden))
         inputEmbeddings   = self.convertToEmbeddings(inputSequence)
+        inputEmbeddingsPositionallyEncoded = self.getPositionalEncodings(inputEmbeddings)
 
         # run encoder (encodedEmbeddings is (batch-size, sequence-length, hidden))
-        encodedEmbeddings = self.runEncoder(inputEmbeddings)
+        encodedEmbeddings = self.runEncoder(inputEmbeddingsPositionallyEncoded)
         return tf.layers.dense(encodedEmbeddings, units=self.vocab.getSize())
 
 
@@ -302,6 +303,28 @@ class BERTModel:
         wordEmbeddings = tf.nn.embedding_lookup(wordEmbeddingsGlobal, sequenceIds)
         return wordEmbeddings
 
+
+    def getPositionalEncodings(self, inputEmbeddings):
+        #PE(pos,2i)=sin(pos/100002i/dmodel)PE(pos,2i)=sin(pos/100002i/dmodel) 
+        #PE(pos,2i+1)=cos(pos/100002i/dmodel)PE(pos,2i+1)=cos(pos/100002i/dmodel) where pospos is the position and ii is the dimension.
+        batchSize       = tf.shape(inputEmbeddings)[0]
+        sequenceLength  = tf.shape(inputEmbeddings)[1]
+        hiddenDimension = tf.shape(inputEmbeddings)[2]
+        
+        sequenceRange = tf.reshape(tf.range(tf.cast(sequenceLength, tf.float32)), (1, sequenceLength, 1))
+        hiddenRange = tf.reshape(tf.range(tf.cast(hiddenDimension, tf.float32)), (1, 1, hiddenDimension))
+        rawPE = sequenceRange / (tf.pow(10000.0, 2.0 * hiddenRange /
+                tf.cast(hiddenDimension, tf.float32)))
+
+        PE_cos = tf.cos(rawPE[:,0::2,:])
+        PE_sin = tf.sin(rawPE[:,1::2,:])
+        
+        PE_cos = tf.reshape(PE_cos, (batchSize, tf.shape(PE_cos)[1], 1, hiddenDimension))
+        PE_sin = tf.reshape(PE_sin, (batchSize, tf.shape(PE_sin)[1], 1, hiddenDimension))
+        
+        PE = tf.concat([PE_cos, PE_sin], axis=2)
+
+        return inputEmbeddings + tf.reshape(PE, (batchSize, sequenceLength, hiddenDimension))
 
     def runEncoder(self, embeddings):
         for i in range(self.getLayerCount()):

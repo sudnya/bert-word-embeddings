@@ -17,7 +17,7 @@
     {
         "chunking" :
         {
-            "size" : 32
+            "size" : 31
         }
     },
     "trainingDataSources" :
