@@ -2,14 +2,18 @@
     "model" :
     {
         "type" : "ClassTransformerModel",
-        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab-guttenberg-64k.txt",
+        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab-guttenberg-256k.txt",
         "epochs" : 10,
         "embedding-size" : 128,
         "assignment-count" : 4,
-        "number-of-classes" : 400,
+        "number-of-classes" : 600,
+        "number-of-direct-classes" : 400,
+        "number-of-layers" : 1,
+        "number-of-attention-heads" : 1,
         "steps-per-epoch" : 1000,
+        "softmax-sample-count": 512,
         "learning-rate": 0.001,
-        "word-frequency-power-law-exponent" : 0.001,
+        "word-frequency-power-law-exponent" : 0.00001,
         "gradient-clipping-factor": 10.0,
         "run-validation" : true,
         "validation-steps-per-epoch" : 100
