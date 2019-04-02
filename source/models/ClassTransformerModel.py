@@ -219,7 +219,7 @@ class ClassTransformerModel:
         wordCounts = reversed([i * self.getWordFrequencyPowerLawExponent()
             for i in range(vocabSize)])
 
-        wordCountsPlusRandom = [i + math.log(generator.uniform(0.0, 1.0)) for i in wordCounts]
+        wordCountsPlusRandom = [i + math.log(generator.uniform(0.0, 1000.0)) for i in wordCounts]
 
         logTotalCount = self.logSumArray(wordCountsPlusRandom)
 
@@ -383,6 +383,8 @@ class ClassTransformerModel:
 
     def setupSummaries(self):
         tf.summary.scalar('cross-entropy', self.loss)
+        tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
+        tf.summary.scalar('class-cross-entropy', self.classLoss)
         tf.summary.scalar('gradient-norm', self.gradientNorm)
 
         self.mergedSummary = tf.summary.merge_all()
@@ -436,8 +438,7 @@ class ClassTransformerModel:
         sequenceLength = tf.shape(classLogits)[1]
 
         sampleCount = self.getSoftmaxSampleCount()
-        samples = tf.random.uniform((self.getAssignmentCount(), sampleCount),
-            dtype=tf.int32, maxval=self.vocab.getSize())
+        samples = self.generateSamples(sampleCount)
         sampledLabels = tf.zeros((batchSize, sequenceLength), dtype=tf.int32)
 
         # sampled mappings is (assignment count, sample count)
@@ -465,6 +466,22 @@ class ClassTransformerModel:
         vocabLogits = tf.reduce_mean(weightedLogits, axis=2)
 
         return self.evaluateLoss(vocabLogits, sampledLabels)
+
+    def generateSamples(self, sampleCount):
+        samplesPerAssignment = []
+
+        for assignment in range(self.getAssignmentCount()):
+            samples, _, _ = tf.random.uniform_candidate_sampler(
+                true_classes=tf.broadcast_to(tf.range(self.vocab.getSize(), dtype=tf.int64),
+                                             (1, self.vocab.getSize())),
+                num_true=self.vocab.getSize(),
+                num_sampled=sampleCount,
+                range_max=self.vocab.getSize(),
+                unique=True)
+
+            samplesPerAssignment.append(tf.reshape(samples, (1, -1)))
+
+        return tf.concat(samplesPerAssignment, axis=0)
 
     def extendLogits(self, vocabLogits, classLogits, labels):
         # class logits is (batch size, sequence length, assignment count, sample count)
