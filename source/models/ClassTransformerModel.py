@@ -46,8 +46,10 @@ class ClassTransformerModel:
 
             if self.shouldRunValidation():
                 self.runOnValidationDataset(epoch)
+                self.validationDataSource.reset()
 
             self.checkpoint()
+            self.trainingDataSource.reset()
 
     def predict(self, inputs, requestedPredictions):
         with self.graph.as_default():
