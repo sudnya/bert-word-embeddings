@@ -41,6 +41,7 @@ class LabelAdaptor:
         return int(self.config["adaptor"]["labels"]["seed"])
 
     def reset(self):
+        self.random = numpy.random.RandomState(seed=self.getSeed())
         return self.source.reset()
 
     def size(self):
