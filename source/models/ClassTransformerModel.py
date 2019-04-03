@@ -71,6 +71,18 @@ class ClassTransformerModel:
                     predictions[b,l,requestedPredictions[b,l,:]]
         return outputPredictions
 
+    def getFeatures(self, inputs):
+        with self.graph.as_default():
+            self.getOrLoadModel()
+
+        inputs = numpy.array(inputs)
+
+        predictions = self.session.run(self.features,
+                feed_dict={self.inputTokens : inputs})
+
+        return predictions
+
+
     def getOrLoadModel(self):
         """Returns a linear model.
 
@@ -602,8 +614,16 @@ class ClassTransformerModel:
         return tf.layers.dense(embeddings, units=self.getNumberOfClasses())
 
     def multiheadedAttentionStack(self, embeddings):
+        # embeddings (batch-size, sequence-length, assignments, hidden-dimension)
         for layer in range(self.getNumberOfLayers()):
             embeddings = self.multiheadedAttention(embeddings)
+
+            if self.isMiddleLayer(layer):
+                batchSize      = tf.shape(embeddings)[0]
+                sequenceLength = tf.shape(embeddings)[1]
+
+                self.features = tf.reshape(embeddings, (batchSize, sequenceLength,
+                    self.getAssignmentCount() * self.getEmbeddingSize()))
 
         return embeddings
 
