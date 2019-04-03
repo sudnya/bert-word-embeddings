@@ -440,7 +440,7 @@ class ClassTransformerModel:
             #tf.losses.sparse_softmax_cross_entropy(
             #labels=labels,
             #logits=batchOutputs),
-            self.klDivergence(tf.one_hot(labels, batchOutputs.shape[-1]), batchOutputs)
+            self.klDivergence(tf.one_hot(labels, batchOutputs.shape[-1]), batchOutputs),
         name="loss")
 
     def klDivergence(self, a, b):
