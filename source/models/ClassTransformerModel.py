@@ -359,7 +359,7 @@ class ClassTransformerModel:
 
         self.addValidationSummaries(totalLoss, totalVocabLoss)
 
-    def addValidationSummaries(self, totalLoss):
+    def addValidationSummaries(self, totalLoss, vocabLoss):
 
         averageLoss = totalLoss / self.getValidationStepsPerEpoch()
 
