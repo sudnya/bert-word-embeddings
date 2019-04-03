@@ -437,10 +437,10 @@ class ClassTransformerModel:
 
     def evaluateLoss(self, batchOutputs, labels):
         return tf.identity(
-            #tf.losses.sparse_softmax_cross_entropy(
-            #labels=labels,
-            #logits=batchOutputs),
-            self.klDivergence(tf.one_hot(labels, batchOutputs.shape[-1]), batchOutputs),
+            tf.losses.sparse_softmax_cross_entropy(
+            labels=labels,
+            logits=batchOutputs),
+            #self.klDivergence(tf.reshape(tf.one_hot(labels, batchOutputs.shape[-1]), tf.shape(batchOutputs)), batchOutputs),
         name="loss")
 
     def klDivergence(self, a, b):
@@ -596,7 +596,7 @@ class ClassTransformerModel:
 
         logits = self.runDecoder(encodedEmbeddings)
 
-        #print("logits", logits.shape)
+        print("logits", logits.shape)
 
         return logits
 
