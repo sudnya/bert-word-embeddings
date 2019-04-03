@@ -135,7 +135,7 @@ class ClassTransformerModel:
 
         # compute the loss
         self.classLoss = self.evaluateLoss(classLogits, self.classLabels)
-        self.vocabLoss = self.evaluateVocabLoss(classLogits, self.labels)#self.evaluateLoss(classLogits, self.classLabels)
+        self.vocabLoss = self.evaluateVocabLoss(classLogits, self.labels)
 
         self.loss = self.classLoss + self.vocabLoss
 
@@ -328,6 +328,7 @@ class ClassTransformerModel:
         validationStart = time.time()
 
         totalLoss = 0.0
+        totalVocabLoss = 0.0
 
         for step in range(self.getValidationStepsPerEpoch()):
             generatorStart = time.time()
@@ -337,10 +338,11 @@ class ClassTransformerModel:
             generatorEnd = time.time()
 
             validationStepStart = time.time()
-            loss, summary = self.validationStep(inputs, labels)
+            loss, vocabLoss = self.validationStep(inputs, labels)
             validationStepEnd = time.time()
 
             totalLoss += loss
+            totalVocabLoss += vocabLoss
 
             message = ("Validation Step (" + str(step) + " / " +
                     str(self.getValidationStepsPerEpoch()) +
@@ -355,14 +357,34 @@ class ClassTransformerModel:
         print(message)
         logger.debug(" Validation took: " + (str(validationEnd - validationStart)) + " seconds...")
 
+        self.addValidationSummaries(totalLoss, totalVocabLoss)
+
+    def addValidationSummaries(self, totalLoss):
+
+        averageLoss = totalLoss / self.getValidationStepsPerEpoch()
+
+        summary = tf.Summary(value=[
+            tf.Summary.Value(tag="validation-cross-entropy", simple_value=averageLoss),
+        ])
+
+        self.trainingSummaryWriter.add_summary(summary, epoch)
+
+        averageVocabLoss = vocabLoss / self.getValidationStepsPerEpoch()
+
+        summary = tf.Summary(value=[
+            tf.Summary.Value(tag="validation-vocab-cross-entropy", simple_value=averageVocabLoss),
+        ])
+
+        self.trainingSummaryWriter.add_summary(summary, epoch)
+
     def validationStep(self, inputs, labels):
         """One minibatch of validation data processed by the model."""
 
         inputs = numpy.array(inputs)
         labels = numpy.array(labels)
 
-        validationLoss, summaries = self.session.run([self.loss,
-            self.mergedSummary], feed_dict={self.inputTokens : inputs,
+        validationLoss, vocabLoss = self.session.run([self.loss, self.vocabLoss],
+                feed_dict={self.inputTokens : inputs,
                 self.labels : labels})
         return validationLoss, summaries
 
