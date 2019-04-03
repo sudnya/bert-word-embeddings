@@ -407,8 +407,8 @@ class ClassTransformerModel:
         optimizer = tf.train.AdamOptimizer(
             learning_rate=float(self.config["model"]["learning-rate"]),
             beta1=0.9,
-            beta2=0.999,
-            epsilon=numpy.finfo(float).eps,
+            beta2=0.98,
+            epsilon=10e-9,
             name="optimizer-step")
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
@@ -510,7 +510,7 @@ class ClassTransformerModel:
         for assignment in range(self.getAssignmentCount()):
             samples, _, _ = tf.random.uniform_candidate_sampler(
                 true_classes=tf.broadcast_to(tf.range(self.vocab.getSize(), dtype=tf.int64),
-                                             (1, self.vocab.getSize())),
+                                             (0, self.vocab.getSize())),
                 num_true=self.vocab.getSize(),
                 num_sampled=sampleCount,
                 range_max=self.vocab.getSize(),
