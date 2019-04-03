@@ -302,7 +302,7 @@ class ClassTransformerModel:
             generatorEnd = time.time()
 
             trainStepStart = time.time()
-            loss, gradNorm = self.trainingStep(inputs, labels, step, epoch)
+            loss, gradNorm = self.t#rainingStep(inputs, labels, step, epoch)
             trainStepEnd = time.time()
 
             totalLoss += loss
@@ -436,10 +436,17 @@ class ClassTransformerModel:
         #        self.graph)
 
     def evaluateLoss(self, batchOutputs, labels):
-        return tf.identity(tf.losses.sparse_softmax_cross_entropy(
-            labels=labels,
-            logits=batchOutputs
-        ), name="loss")
+        return tf.identity(
+            #tf.losses.sparse_softmax_cross_entropy(
+            #labels=labels,
+            #logits=batchOutputs),
+            self.klDivergence(tf.one_hot(labels, batchOutputs.shape[-1]), batchOutputs)
+        name="loss")
+
+    def klDivergence(self, a, b):
+        a = tf.distributions.Categorical(probs=a + numpy.finfo(float).eps)
+        b = tf.distributions.Categorical(probs=tf.nn.softmax(b) + numpy.finfo(float).eps)
+        return tf.reduce_mean(tf.distributions.kl_divergence(a, b, allow_nan_stats=False))
 
     def convertToClasses(self, inputs):
         # inputs is (batch, sequence)
@@ -652,16 +659,16 @@ class ClassTransformerModel:
 
     def multiheadedAttention(self, embeddings):
         # embeddings (batch-size, sequence-length, assignments, hidden-dimension)
-        #projectedEmbeddings = self.projectEmbeddings(embeddings)
+        projectedEmbeddings = self.projectEmbeddings(embeddings)
 
-        ## proj-embeddings (batch-size, sequence-length, assignments, QKV, attention-heads, hidden-dimension)
-        #attentionOutput = self.runAttention(projectedEmbeddings)
+        # proj-embeddings (batch-size, sequence-length, assignments, QKV, attention-heads, hidden-dimension)
+        attentionOutput = self.runAttention(projectedEmbeddings)
 
-        ## project back
-        #outputEmbeddings = self.projectBackEmbeddings(attentionOutput)
+        # project back
+        outputEmbeddings = self.projectBackEmbeddings(attentionOutput)
 
         # add and norm
-        #embeddings = self.addAndNorm(outputEmbeddings, embeddings)
+        embeddings = self.addAndNorm(outputEmbeddings, embeddings)
 
         # dense layer
         denseOutput = tf.layers.dense(embeddings,
