@@ -302,7 +302,7 @@ class ClassTransformerModel:
             generatorEnd = time.time()
 
             trainStepStart = time.time()
-            loss, gradNorm = self.t#rainingStep(inputs, labels, step, epoch)
+            loss, gradNorm = self.trainingStep(inputs, labels, step, epoch)
             trainStepEnd = time.time()
 
             totalLoss += loss
