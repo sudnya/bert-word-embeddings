@@ -386,7 +386,7 @@ class ClassTransformerModel:
         validationLoss, vocabLoss = self.session.run([self.loss, self.vocabLoss],
                 feed_dict={self.inputTokens : inputs,
                 self.labels : labels})
-        return validationLoss, summaries
+        return validationLoss, vocabLoss
 
     def createOptimizerStep(self, loss):
         """One step of backprop."""
