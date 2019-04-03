@@ -275,8 +275,8 @@ class ClassTransformerModel:
                 for memberIndex in currentClassMembers:
                     weights[memberIndex] = 1.0 / currentClassSize
 
-                if i == 0 or i == len(sortedWordCounts) - 1:
-                    logger.info("current class" + str(currentClass) + " members " + str(len(currentClassMembers)))
+                if currentClass == 0 or i == (len(sortedWordCounts) - 1):
+                    logger.info("current class " + str(currentClass) + " members " + str(len(currentClassMembers)))
 
                 currentClass += 1
                 currentClassSize = 0
@@ -615,6 +615,9 @@ class ClassTransformerModel:
         return tf.layers.dense(embeddings, units=self.getNumberOfClasses())
 
     def multiheadedAttentionStack(self, embeddings):
+
+        embeddings = self.addPositions(embeddings)
+
         # embeddings (batch-size, sequence-length, assignments, hidden-dimension)
         for layer in range(self.getNumberOfLayers()):
             embeddings = self.multiheadedAttention(embeddings)
@@ -627,6 +630,21 @@ class ClassTransformerModel:
                     self.getAssignmentCount() * self.getEmbeddingSize()))
 
         return embeddings
+
+    def addPositions(self, embeddings):
+        batchSize      = tf.shape(embeddings)[0]
+        sequenceLength = tf.shape(embeddings)[1]
+
+        positions = tf.cast(tf.reshape(tf.range(sequenceLength),
+            (1, sequenceLength, 1, 1)), dtype=tf.float32)
+        dimensions = tf.cast(tf.reshape(tf.range(self.getEmbeddingSize()),
+            (1, 1, 1, self.getEmbeddingSize())), dtype=tf.float32)
+
+        positionEmbeddings = tf.sin(positions / tf.pow(2.0 * self.getEmbeddingSize(),
+            2.0 * dimensions / self.getEmbeddingSize()))
+
+        return embeddings + positionEmbeddings
+
 
     def isMiddleLayer(self, layer):
         return layer == (self.getNumberOfLayers() // 2)
