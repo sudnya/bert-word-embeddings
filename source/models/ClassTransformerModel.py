@@ -507,10 +507,11 @@ class ClassTransformerModel:
     def generateSamples(self, sampleCount):
         samplesPerAssignment = []
 
+        # BUG: Dont sample the label
         for assignment in range(self.getAssignmentCount()):
             samples, _, _ = tf.random.uniform_candidate_sampler(
                 true_classes=tf.broadcast_to(tf.range(self.vocab.getSize(), dtype=tf.int64),
-                                             (0, self.vocab.getSize())),
+                                             (1, self.vocab.getSize())),
                 num_true=self.vocab.getSize(),
                 num_sampled=sampleCount,
                 range_max=self.vocab.getSize(),
@@ -651,23 +652,23 @@ class ClassTransformerModel:
 
     def multiheadedAttention(self, embeddings):
         # embeddings (batch-size, sequence-length, assignments, hidden-dimension)
-        projectedEmbeddings = self.projectEmbeddings(embeddings)
+        #projectedEmbeddings = self.projectEmbeddings(embeddings)
 
-        # proj-embeddings (batch-size, sequence-length, assignments, QKV, attention-heads, hidden-dimension)
-        attentionOutput = self.runAttention(projectedEmbeddings)
+        ## proj-embeddings (batch-size, sequence-length, assignments, QKV, attention-heads, hidden-dimension)
+        #attentionOutput = self.runAttention(projectedEmbeddings)
 
-        # project back
-        outputEmbeddings = self.projectBackEmbeddings(attentionOutput)
+        ## project back
+        #outputEmbeddings = self.projectBackEmbeddings(attentionOutput)
 
         # add and norm
-        outputEmbeddings = self.addAndNorm(outputEmbeddings, embeddings)
+        #embeddings = self.addAndNorm(outputEmbeddings, embeddings)
 
         # dense layer
-        denseOutput = tf.layers.dense(outputEmbeddings,
+        denseOutput = tf.layers.dense(embeddings,
             self.getEmbeddingSize(), activation="relu")
 
         # add and norm
-        denseOutput = self.addAndNorm(denseOutput, outputEmbeddings)
+        denseOutput = self.addAndNorm(denseOutput, embeddings)
 
         return denseOutput
 
