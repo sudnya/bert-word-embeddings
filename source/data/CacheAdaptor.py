@@ -15,6 +15,7 @@ class CacheAdaptor:
 
     def reset(self):
         self.iterations = None
+        self.random = numpy.random.RandomState(seed=self.getSeed())
         self.source.reset()
 
     def size(self):

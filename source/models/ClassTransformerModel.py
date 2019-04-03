@@ -699,9 +699,7 @@ class ClassTransformerModel:
         return projectedEmbeddings
 
     def addAndNorm(self, left, right):
-        normalizedLeft = tf.contrib.layers.layer_norm(left)
-
-        return tf.add(normalizedLeft, right)
+        return tf.contrib.layers.layer_norm(tf.add(left, right))
 
     def runAttention(self, embeddings):
         # Q,K,V (batch-size, sequence-length, assignments, attention-heads, hidden-dimension)
