@@ -276,7 +276,7 @@ class ClassTransformerModel:
                     weights[memberIndex] = 1.0 / currentClassSize
 
                 if i == 0 or i == len(sortedWordCounts) - 1:
-                    print("current class", currentClass, "members", len(currentClassMembers))
+                    logger.info("current class" + str(currentClass) + " members " + str(len(currentClassMembers)))
 
                 currentClass += 1
                 currentClassSize = 0
