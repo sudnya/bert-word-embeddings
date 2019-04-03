@@ -250,6 +250,8 @@ def runLocally(arguments):
             featurizer = getFeaturizer(config, validationData)
             features = featurizer.featurize()
 
+            features.save(arguments["output_directory"])
+
         elif arguments["make_test_set"]:
             validationData = getValidationData(config)
 

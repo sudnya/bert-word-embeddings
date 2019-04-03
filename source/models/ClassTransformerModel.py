@@ -627,6 +627,9 @@ class ClassTransformerModel:
 
         return embeddings
 
+    def isMiddleLayer(self, layer):
+        return layer == (self.getNumberOfLayers() // 2)
+
     def multiheadedAttention(self, embeddings):
         # embeddings (batch-size, sequence-length, assignments, hidden-dimension)
         projectedEmbeddings = self.projectEmbeddings(embeddings)
