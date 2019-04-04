@@ -620,7 +620,9 @@ class ClassTransformerModel:
         return self.multiheadedAttentionStack(embeddings)
 
     def runDecoder(self, embeddings):
-        return tf.layers.dense(embeddings, units=self.getNumberOfClasses())
+        # embeddings is (batch size, sequence length, assignments, classes)
+        return tf.concat([tf.layers.dense(embeddings[:,:,i,:], units=self.getNumberOfClasses())
+            for i in self.getAssignmentCount()], axis=2)
 
     def multiheadedAttentionStack(self, embeddings):
 
