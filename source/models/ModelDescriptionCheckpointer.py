@@ -1,5 +1,6 @@
 
 import os
+import shutil
 
 class ModelDescriptionCheckpointer:
     def __init__(self, config, name):
