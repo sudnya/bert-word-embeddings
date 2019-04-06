@@ -122,6 +122,7 @@ class ClassTransformerModel:
     def setOperationsByName(self):
         self.inputTokens = self.graph.get_tensor_by_name("input-tokens:0")
         self.labels = self.graph.get_tensor_by_name("output-labels:0")
+        self.features = self.graph.get_tensor_by_name("features:0")
         self.outputProbabilities = \
             self.graph.get_tensor_by_name("output-probabilities:0")
         self.loss = self.graph.get_tensor_by_name("loss:0")
@@ -596,7 +597,7 @@ class ClassTransformerModel:
 
         logits = self.runDecoder(encodedEmbeddings)
 
-        print("logits", logits.shape)
+        #print("logits", logits.shape)
 
         return logits
 
@@ -624,7 +625,8 @@ class ClassTransformerModel:
         batchSize      = tf.shape(embeddings)[0]
         sequenceLength = tf.shape(embeddings)[1]
         # embeddings is (batch size, sequence length, assignments, classes)
-        return tf.concat([tf.reshape(tf.layers.dense(embeddings[:,:,i,:], units=self.getNumberOfClasses()), (batchSize, sequenceLength, 1, self.getNumberOfClasses()))
+        return tf.concat([tf.reshape(tf.layers.dense(embeddings[:,:,i,:], units=self.getNumberOfClasses()),
+                (batchSize, sequenceLength, 1, self.getNumberOfClasses()))
             for i in range(self.getAssignmentCount())], axis=2)
 
     def multiheadedAttentionStack(self, embeddings):
@@ -639,8 +641,8 @@ class ClassTransformerModel:
                 batchSize      = tf.shape(embeddings)[0]
                 sequenceLength = tf.shape(embeddings)[1]
 
-                self.features = tf.reshape(embeddings, (batchSize, sequenceLength,
-                    self.getAssignmentCount() * self.getEmbeddingSize()))
+                self.features = tf.identity(tf.reshape(embeddings, (batchSize, sequenceLength,
+                    self.getAssignmentCount() * self.getEmbeddingSize())), name="features")
 
         return embeddings
 

@@ -11,6 +11,8 @@ class ModelDescriptionCheckpointer:
         import json
         jsonPath = self.getCheckpointJSONFilePath()
         directory = self.getModelDirectory()
+        vocabPath = self.getCheckpointVocabPath()
+        configPath = self.getConfigFilePath()
 
         checkpointDescription = {"type" : self.name,
             "path" : directory,
@@ -20,6 +22,13 @@ class ModelDescriptionCheckpointer:
 
         with open(jsonPath, 'w') as jsonFile:
             json.dump(checkpointDescription, jsonFile, indent=4, sort_keys=True)
+
+        shutil.copy(self.getCurrentVocabPath(), vocabPath)
+
+        self.config["model"]["vocab"] = vocabPath
+
+        with open(configPath, 'w') as jsonFile:
+            json.dump(self.config, jsonFile, index=4, sort_keys=True)
 
     def load(self):
         import json
@@ -36,6 +45,12 @@ class ModelDescriptionCheckpointer:
 
     def getCheckpointJSONFilePath(self):
         return os.path.join(self.getExperimentDirectory(), "checkpoint.json")
+
+    def getCheckpointVocabFilePath(self):
+        return os.path.join(self.getExperimentDirectory(), "vocab.txt")
+
+    def getCurrentVocabFilePath(self):
+        return config["model"]["vocab"]
 
     def getConfigFilePath(self):
         return os.path.join(self.getExperimentDirectory(), "config.json")

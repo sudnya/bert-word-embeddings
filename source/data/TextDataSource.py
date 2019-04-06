@@ -27,7 +27,7 @@ class TextDataSource:
         return sum([os.path.getsize(f) for f in self.files])
 
     def reset(self):
-        assert len(self.files) > 0
+        assert len(self.files) > 0, "No files found in " + self.getPath()
         self.file = open(self.files[0], encoding='ISO-8859-1')
         self.index = 1
 

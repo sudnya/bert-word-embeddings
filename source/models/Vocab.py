@@ -25,6 +25,9 @@ class Vocab:
     def getVocabPath(self):
         return self.config["model"]["vocab"]
 
+    def save(self, path):
+        shutil.copy(self.getVocabPath(), path)
+
     def contains(self, token):
         return token in self.vocab
 
