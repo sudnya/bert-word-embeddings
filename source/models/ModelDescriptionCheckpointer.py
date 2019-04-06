@@ -11,7 +11,7 @@ class ModelDescriptionCheckpointer:
         import json
         jsonPath = self.getCheckpointJSONFilePath()
         directory = self.getModelDirectory()
-        vocabPath = self.getCheckpointVocabPath()
+        vocabPath = self.getCheckpointVocabFilePath()
         configPath = self.getConfigFilePath()
 
         checkpointDescription = {"type" : self.name,
