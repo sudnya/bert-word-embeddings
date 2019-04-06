@@ -123,8 +123,9 @@ class ClassTransformerModel:
         self.inputTokens = self.graph.get_tensor_by_name("input-tokens:0")
         self.labels = self.graph.get_tensor_by_name("output-labels:0")
         self.features = self.graph.get_tensor_by_name("features:0")
-        self.outputProbabilities = \
-            self.graph.get_tensor_by_name("output-probabilities:0")
+        self.vocabLoss = self.graph.get_tensor_by_name("vocab-loss:0")
+        self.classLoss = self.graph.get_tensor_by_name("class-loss:0")
+        self.outputProbabilities = self.graph.get_tensor_by_name("output-probabilities:0")
         self.loss = self.graph.get_tensor_by_name("loss:0")
         self.optimizerStep = self.graph.get_operation_by_name("optimizer-step")
 
@@ -147,8 +148,8 @@ class ClassTransformerModel:
         classLogits = self.runClassModel(self.inputClasses)
 
         # compute the loss
-        self.classLoss = self.evaluateLoss(classLogits, self.classLabels)
-        self.vocabLoss = self.evaluateVocabLoss(classLogits, self.labels)
+        self.classLoss = tf.identity(self.evaluateLoss(classLogits, self.classLabels), name="class-loss")
+        self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits, self.labels), name="vocab-loss")
 
         self.loss = self.classLoss + self.vocabLoss
 
