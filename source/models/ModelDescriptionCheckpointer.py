@@ -29,7 +29,7 @@ class ModelDescriptionCheckpointer:
         self.config["model"]["vocab"] = vocabPath
 
         with open(configPath, 'w') as jsonFile:
-            json.dump(self.config, jsonFile, index=4, sort_keys=True)
+            json.dump(self.config, jsonFile, indent=4, sort_keys=True)
 
     def load(self):
         import json
