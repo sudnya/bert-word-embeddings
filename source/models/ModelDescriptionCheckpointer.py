@@ -51,7 +51,7 @@ class ModelDescriptionCheckpointer:
         return os.path.join(self.getExperimentDirectory(), "vocab.txt")
 
     def getCurrentVocabFilePath(self):
-        return config["model"]["vocab"]
+        return self.config["model"]["vocab"]
 
     def getConfigFilePath(self):
         return os.path.join(self.getExperimentDirectory(), "config.json")
