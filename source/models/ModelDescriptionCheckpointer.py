@@ -24,7 +24,8 @@ class ModelDescriptionCheckpointer:
         with open(jsonPath, 'w') as jsonFile:
             json.dump(checkpointDescription, jsonFile, indent=4, sort_keys=True)
 
-        shutil.copy(self.getCurrentVocabFilePath(), vocabPath)
+        if vocabath != self.getCurrentVocabFilePath():
+            shutil.copy(self.getCurrentVocabFilePath(), vocabPath)
 
         self.config["model"]["vocab"] = vocabPath
 

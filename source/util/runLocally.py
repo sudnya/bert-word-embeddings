@@ -141,6 +141,9 @@ def loadConfig(arguments):
     except:
         config = {}
 
+    if arguments["model_path"] != "":
+        config["model"]["vocab"] = os.path.join(arguments["model_path"], 'vocab.txt')
+
     if len(arguments["test_set"]) > 0:
         config["validationDataSources"] = [{ "type" : "TextDataSource",
                                              "path" : arguments["test_set"] }]
@@ -250,7 +253,7 @@ def runLocally(arguments):
             featurizer = getFeaturizer(config, validationData)
             features = featurizer.featurize()
 
-            features.save(arguments["output_directory"])
+            numpy.save(arguments["output_directory"], features)
 
         elif arguments["make_test_set"]:
             validationData = getValidationData(config)

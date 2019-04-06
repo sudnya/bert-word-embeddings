@@ -3,6 +3,8 @@ from models.ModelFactory import ModelFactory
 from models.Vocab import Vocab
 from inference.EvaluatorFactory import EvaluatorFactory
 
+import numpy
+
 import logging
 
 logger = logging.getLogger(__name__)
