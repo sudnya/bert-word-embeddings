@@ -381,7 +381,7 @@ class ClassTransformerModel:
         print(message)
         logger.debug(" Validation took: " + (str(validationEnd - validationStart)) + " seconds...")
 
-        self.addValidationSummaries(totalLoss, totalVocabLoss, epoch)
+        self.addValidationSummaries(totalLoss, self.totalVocabLoss, epoch)
 
     def addValidationSummaries(self, totalLoss, vocabLoss, epoch):
 
