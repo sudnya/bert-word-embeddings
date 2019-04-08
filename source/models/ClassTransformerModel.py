@@ -31,6 +31,7 @@ class ClassTransformerModel:
         self.session = tf.Session(graph=self.graph)
         self.checkpointer = ModelDescriptionCheckpointer(config, self.__class__.__name__)
         self.isLoaded = False
+        self.bestValidationLoss = None
 
     def train(self):
         """Trains the model.
@@ -48,8 +49,16 @@ class ClassTransformerModel:
                 self.runOnValidationDataset(epoch)
                 self.validationDataSource.reset()
 
-            self.checkpoint()
+            self.checkpointBestModel()
             self.trainingDataSource.reset()
+
+    def checkpointBestModel(self):
+        if self.bestValidationLoss is None:
+            self.checkpoint()
+            return
+
+        if self.totalVocabLoss < self.bestValidationLoss:
+            self.checkpoint()
 
     def predict(self, inputs, requestedPredictions):
         with self.graph.as_default():
@@ -343,7 +352,7 @@ class ClassTransformerModel:
         validationStart = time.time()
 
         totalLoss = 0.0
-        totalVocabLoss = 0.0
+        self.totalVocabLoss = 0.0
 
         for step in range(self.getValidationStepsPerEpoch()):
             generatorStart = time.time()
@@ -357,7 +366,7 @@ class ClassTransformerModel:
             validationStepEnd = time.time()
 
             totalLoss += loss
-            totalVocabLoss += vocabLoss
+            self.totalVocabLoss += vocabLoss
 
             message = ("Validation Step (" + str(step) + " / " +
                     str(self.getValidationStepsPerEpoch()) +
