@@ -106,6 +106,7 @@ class TokenizerAdaptor:
             pass
 
         logger.info("Scanning token count..." + str(count))
+        self.reset()
 
         return count
 

@@ -660,13 +660,27 @@ class ClassTransformerModel:
         batchSize      = tf.shape(embeddings)[0]
         sequenceLength = tf.shape(embeddings)[1]
 
-        positions = tf.cast(tf.reshape(tf.range(sequenceLength),
-            (1, sequenceLength, 1, 1)), dtype=tf.float32)
+        halfSequenceLength = (sequenceLength + 1) // 2
+
+        positions = tf.cast(tf.reshape(tf.range(halfSequenceLength),
+            (1, halfSequenceLength, 1, 1)), dtype=tf.float32)
         dimensions = tf.cast(tf.reshape(tf.range(self.getEmbeddingSize()),
             (1, 1, 1, self.getEmbeddingSize())), dtype=tf.float32)
 
-        positionEmbeddings = tf.sin(positions / tf.pow(2.0 * self.getEmbeddingSize(),
-            2.0 * dimensions / self.getEmbeddingSize()))
+        angles = positions / tf.pow(2.0 * tf.cast(halfSequenceLength, dtype=tf.float32),
+                                    2.0 * dimensions / self.getEmbeddingSize())
+
+        evenPositionEmbeddings = tf.reshape(tf.sin(angles),
+            (1, halfSequenceLength, 1, 1, self.getEmbeddingSize()))
+        oddPositionEmbeddings  = tf.reshape(tf.cos(angles),
+            (1, halfSequenceLength, 1, 1, self.getEmbeddingSize()))
+
+        # merge them
+        positionEmbeddings = tf.concat([evenPositionEmbeddings, oddPositionEmbeddings], axis=2)
+        positionEmbeddings = tf.reshape(positionEmbeddings,
+            (1, 2 * halfSequenceLength, 1, self.getEmbeddingSize()))
+
+        positionEmbeddings = positionEmbeddings[:, 0:sequenceLength, :, :]
 
         return embeddings + positionEmbeddings
 

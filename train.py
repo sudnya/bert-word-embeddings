@@ -97,8 +97,10 @@ def main():
         help = "Set the vocab path explicitly.")
     parser.add_argument("--make-vocab", default=False, action="store_true",
         help = "Make a vocab file for the validation set.")
-    parser.add_argument("--make-features", default=False, action="store_true",
-        help = "Make a feature capture.")
+    parser.add_argument("--make-clusters", default=False, action="store_true",
+        help = "Group the test sets into clusters using model feature space.")
+    parser.add_argument("--cluster-count", default=16,
+        help = "The number of clusters to make.")
     parser.add_argument("--use-unk-tokenizer", default=False, action="store_true",
         help = "Use the UNK-Tokenizer.")
     parser.add_argument("-o", "--output-directory", default="test-set",

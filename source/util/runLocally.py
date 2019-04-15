@@ -8,7 +8,7 @@ import shutil
 from models.ModelFactory import ModelFactory
 from models.Vocab import Vocab
 from inference.Predictor import Predictor
-from inference.Featurizer import Featurizer
+from inference.Clusterer import Clusterer
 from data.DataSources import DataSources
 from data.DataSourceFactory import DataSourceFactory
 from mpi.mpi import mpi
@@ -53,8 +53,8 @@ def getModel(config, trainingData, validationData):
 def getPredictor(config, validationData):
     return Predictor(config, validationData)
 
-def getFeaturizer(config, validationData):
-    return Featurizer(config, validationData)
+def getClusterer(config, validationData, directory, clusterCount):
+    return Clusterer(config, validationData, directory, clusterCount)
 
 def saveData(validationData, tokenCount, directory, vocab):
     if not os.path.exists(directory):
@@ -245,15 +245,15 @@ def runLocally(arguments):
 
             print("Perplexity " + str(perplexity))
 
-        elif arguments["make_features"]:
+        elif arguments["make_clusters"]:
             if "model" in config:
                 config["model"]["directory"] = arguments["model_path"]
 
             validationData = getValidationData(config)
-            featurizer = getFeaturizer(config, validationData)
-            features = featurizer.featurize()
+            clusterer = getClusterer(config, validationData, arguments["output_directory"],
+                int(arguments["cluster_count"]))
 
-            numpy.save(arguments["output_directory"], features)
+            clusterer.groupDataIntoClusters()
 
         elif arguments["make_test_set"]:
             validationData = getValidationData(config)

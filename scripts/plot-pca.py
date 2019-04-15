@@ -3,8 +3,13 @@ import numpy
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
+import sys
 
-filename = "output-features.npy"
+
+if len(sys.argv) == 1:
+    filename = "output-features.npy"
+else:
+    filename = sys.argv[1]
 
 array = numpy.load(filename)
 

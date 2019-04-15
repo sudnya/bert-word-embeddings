@@ -1,7 +1,6 @@
 
 from models.ModelFactory import ModelFactory
 from models.Vocab import Vocab
-from inference.EvaluatorFactory import EvaluatorFactory
 
 import numpy
 
@@ -15,21 +14,13 @@ class Featurizer:
         self.validationDataset = validationDataset
 
         self.model = self.loadModel()
-        self.evaluator = EvaluatorFactory(config).create()
 
-    def featurize(self):
-        logger.debug("Running featurizer for " + str(self.getIterations()) + " iterations")
+    def featurizeOneBatch(self):
+        inputs, labels = self.validationDataset.next()
 
-        features = []
+        logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
-        for i in range(self.getIterations()):
-            inputs, labels = self.validationDataset.next()
-
-            logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
-
-            features.append(self.model.getFeatures(inputs))
-
-        return numpy.concatenate(features, axis=0)
+        return inputs, labels, self.model.getFeatures(inputs)
 
     def getIterations(self):
         if "iterations" in self.config["predictor"]:
