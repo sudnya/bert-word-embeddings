@@ -11,6 +11,7 @@ class TokenizerAdaptor:
         self.config = config
         self.source = source
         self.buffer = []
+        self.idBuffer = []
         self.vocab = self.loadVocab()
         self.maximumSize = None
         self.tokenCount = None
@@ -24,10 +25,11 @@ class TokenizerAdaptor:
 
     def fillBuffer(self):
         while len(self.buffer) < self.vocab.getMaximumTokenSize():
-            character = self.source.next()
+            character, documentId = self.source.next()
             if len(character) == 0:
                 break
             self.buffer.append(character)
+            self.idBuffer.append(documentId)
 
     def matchBestToken(self):
         token = self.tryMatchBestToken()
@@ -52,10 +54,13 @@ class TokenizerAdaptor:
             #logger.debug("trying string: '" + possibleToken + "'")
 
             if self.vocab.contains(possibleToken):
+                documentId = self.idBuffer[0]
                 del self.buffer[:end]
+                del self.idBuffer[:end]
                 token = self.vocab.getToken(possibleToken)
-                logger.debug("string: '" + possibleToken + "' -> " + str(token))
-                return token
+                logger.debug("string: '" + possibleToken + "' -> " + str(token) + " (" +
+                    str(documentId) + ")")
+                return token, documentId
 
         return None
 
@@ -109,6 +114,12 @@ class TokenizerAdaptor:
         self.reset()
 
         return count
+
+    def shuffleDocuments(self):
+        self.source.shuffleDocuments()
+
+    def clone(self):
+        return TokenizerAdaptor(self.config, self.source.clone())
 
 
 

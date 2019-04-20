@@ -43,6 +43,12 @@ class CacheAdaptor:
         while len(self.cache) < self.getCacheSize():
             self.cache.append(self.source.next())
 
+    def shuffleDocuments(self):
+        self.source.shuffleDocuments()
+
+    def clone(self):
+        return CacheAdaptor(self.config, self.source.clone())
+
     def getMaximumIterationsPerRefresh(self):
         return self.getReuse() * self.getCacheSize()
 

@@ -28,5 +28,11 @@ class ChunkAdaptor:
     def setMaximumSize(self, size):
         self.source.setMaximumSize(size * self.getChunkSize())
 
+    def shuffleDocuments(self):
+        self.source.shuffleDocuments()
+
+    def clone(self):
+        return ChunkAdaptor(self.config, self.source.clone())
+
 
 
