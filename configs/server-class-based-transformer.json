@@ -2,17 +2,17 @@
     "model" :
     {
         "type" : "ClassTransformerModel",
-        "vocab" : "/data/1tb-ssd/language/training/vocabs/vocab-guttenberg-256k.txt",
-        "epochs" : 200,
-        "embedding-size" : 128,
+        "vocab" : "/data/1tb-ssd/language/vocabs/vocab-guttenberg-256k.txt",
+        "epochs" : 20,
+        "embedding-size" : 512,
         "assignment-count" : 2,
-        "number-of-classes" : 8192,
-        "number-of-direct-classes" : 6144,
-        "number-of-layers" : 1,
+        "number-of-classes" : 16384,
+        "number-of-direct-classes" : 12288,
+        "number-of-layers" : 2,
         "number-of-attention-heads" : 4,
-        "steps-per-epoch" : 100,
-        "softmax-sample-count": 1024,
-        "learning-rate": 0.001,
+        "steps-per-epoch" : 100000,
+        "softmax-sample-count": 512,
+        "learning-rate": 0.0005,
         "word-frequency-power-law-exponent" : 0.00001,
         "gradient-clipping-factor": 10.0,
         "run-validation" : true,
@@ -33,14 +33,14 @@
     [
         {
             "type" : "TextDataSource",
-            "path" : "/data/1tb-ssd/language/training"
+            "path" : "/data/1tb-ssd/language/training/guttenberg-splits"
         }
     ],
     "validationDataSources" :
     [
         {
             "type" : "TextDataSource",
-            "path" : "/data/1tb-ssd/language/validation"
+            "path" : "/data/1tb-ssd/language/validation/guttenberg-splits"
         }
     ]
 

@@ -1,6 +1,6 @@
 
 
-Goal 1: Implement a LM (embeddings) training pipeline
+Goal 1: Implement a state of the art LM (embeddings) training pipeline
 
 1. Create a vocab that can handle every word (e.g. using a tokenizer with fallback)
     Hypothesis: Using <UNK> discards information in the tail (and there is a lot of it).
