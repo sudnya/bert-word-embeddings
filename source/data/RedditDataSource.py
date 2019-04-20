@@ -1,4 +1,7 @@
 
+
+import numpy
+
 class RedditDataSource:
     def __init__(self, config, sourceConfig):
         self.config = config

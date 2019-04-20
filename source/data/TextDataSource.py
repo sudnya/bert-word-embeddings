@@ -1,4 +1,6 @@
 
+import numpy
+
 class TextDataSource:
     def __init__(self, config, sourceConfig):
         self.config = config
