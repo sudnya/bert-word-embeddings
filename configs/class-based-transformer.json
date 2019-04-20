@@ -32,20 +32,12 @@
     "trainingDataSources" :
     [
         {
-            "type" : "TextDataSource",
-            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/training/text"
-        },
-        {
             "type" : "AOLQueryDataSource",
             "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/training/aol"
         }
     ],
     "validationDataSources" :
     [
-        {
-            "type" : "TextDataSource",
-            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/validation/text"
-        },
         {
             "type" : "AOLQueryDataSource",
             "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/validation/aol"

@@ -2,6 +2,7 @@
 from inference.Featurizer import Featurizer
 from models.Vocab import Vocab
 from sklearn.cluster import MiniBatchKMeans as MiniBatchKMeans
+from sklearn.decomposition import IncrementalPCA as IncrementalPCA
 
 import os
 import numpy
@@ -20,8 +21,21 @@ class Clusterer:
     def groupDataIntoClusters(self):
 
         kmeans = MiniBatchKMeans(n_clusters=self.numberOfClusters)
+        pca = IncrementalPCA(n_components=32)
         featurizer = Featurizer(self.config, self.validationDataset)
         vocab = Vocab(self.config)
+
+        logger.info("Reducing dimensionality...")
+
+        # fit the pca model
+        for iteration in range(self.getIterations()):
+            if iteration % 10 == 0:
+                logger.info(" " + str(iteration) + " / " + str(self.getIterations()))
+            inputs, labels, embeddings = featurizer.featurizeOneBatch()
+
+            pca.partial_fit(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
+
+        self.validationDataset.reset()
 
         logger.info("Fitting model...")
 
@@ -31,7 +45,10 @@ class Clusterer:
                 logger.info(" " + str(iteration) + " / " + str(self.getIterations()))
             inputs, labels, embeddings = featurizer.featurizeOneBatch()
 
-            kmeans.partial_fit(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
+            reducedDimensionFeatures = pca.transform(
+                numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
+
+            kmeans.partial_fit(reducedDimensionFeatures)
 
         self.validationDataset.reset()
 
@@ -50,8 +67,11 @@ class Clusterer:
             chunkLength = embeddings.shape[1]
             batchSize = embeddings.shape[0]
 
+            reducedDimensionFeatures = pca.transform(
+                numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
+
             clusters = numpy.reshape(
-                kmeans.predict(numpy.reshape(embeddings, (-1, embeddings.shape[-1]))),
+                kmeans.predict(reducedDimensionFeatures),
                 (batchSize, chunkLength))
 
             for batch in range(batchSize):

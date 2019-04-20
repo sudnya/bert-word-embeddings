@@ -17,7 +17,7 @@ class TextDataSource:
 
                 c = self.file.read(1)
 
-        return c
+        return c, self.index
 
     def getPath(self):
         return self.sourceConfig["path"]
@@ -30,6 +30,13 @@ class TextDataSource:
         assert len(self.files) > 0, "No files found in " + self.getPath()
         self.file = open(self.files[0], encoding='ISO-8859-1')
         self.index = 1
+        self.random = numpy.random.RandomState(seed=self.getSeed())
+
+    def shuffleDocuments(self):
+        self.random.shuffle(self.files)
+
+    def clone(self):
+        return TextDataSource(self.config, self.sourceConfig)
 
     def getName(self):
         return self.getPath()

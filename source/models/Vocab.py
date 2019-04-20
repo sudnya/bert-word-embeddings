@@ -60,7 +60,7 @@ class Vocab:
 
     @staticmethod
     def getVocabOffset():
-        return 3
+        return 6
 
     @staticmethod
     def getClassLabelToken():
@@ -73,6 +73,18 @@ class Vocab:
     @staticmethod
     def getUnkToken():
         return 2
+
+    @staticmethod
+    def getSameSourceToken():
+        return 3
+
+    @staticmethod
+    def getDifferentSourceToken():
+        return 4
+
+    @staticmethod
+    def getSeparatorToken():
+        return 5
 
     @staticmethod
     def isReservedToken(token):

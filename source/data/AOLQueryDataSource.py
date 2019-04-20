@@ -1,4 +1,6 @@
 
+import numpy
+
 class AOLQueryDataSource:
     def __init__(self, config, sourceConfig):
         self.config = config
@@ -17,14 +19,14 @@ class AOLQueryDataSource:
 
         self.linePosition += 1
 
-        return nextCharacter
+        return nextCharacter, self.userId
 
     def fillLineBuffer(self):
         if self.linePosition < len(self.line):
             return
 
         self.linePosition = 0
-        self.line = self.parseLine()
+        self.line, self.userId = self.parseLine()
 
         while len(self.line) == 0:
             if self.index >= len(self.files):
@@ -33,7 +35,7 @@ class AOLQueryDataSource:
             self.file = open(self.files[self.index], encoding='ISO-8859-1')
             self.index += 1
 
-            self.line = self.parseLine()
+            self.line, self.userId = self.parseLine()
 
     def parseLine(self):
         nextLine = self.readline()
@@ -41,9 +43,13 @@ class AOLQueryDataSource:
         while len(nextLine) > 0:
             elements = nextLine.split('\t')
             if isInt(elements[0]):
-                return elements[1]
+                return elements[1], int(elements[0])
+            nextLine = self.readline()
 
-        return ""
+        return "", -1
+
+    def readline(self):
+        return self.file.readline()
 
 
     def getPath(self):
@@ -59,6 +65,13 @@ class AOLQueryDataSource:
 
         self.line = ""
         self.linePosition = 0
+        self.random = numpy.random.RandomState(seed=self.getSeed())
+
+    def shuffleDocuments(self):
+        self.random.shuffle(self.files)
+
+    def clone(self):
+        return AOLQueryDataSource(self.config, self.sourceConfig)
 
     def getName(self):
         return self.getPath()
@@ -75,6 +88,12 @@ class AOLQueryDataSource:
             allFiles += [os.path.join(root, f) for f in files]
 
         return sorted(allFiles)
+
+    def getSeed(self):
+        if not "size" in self.config["adaptor"]["cache"]:
+            return 124
+
+        return int(self.config["adaptor"]["cache"]["seed"])
 
 
 
