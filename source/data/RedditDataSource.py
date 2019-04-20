@@ -87,6 +87,12 @@ class RedditDataSource:
 
         return sorted(allFiles)
 
+    def getSeed(self):
+        if not "size" in self.config["adaptor"]["cache"]:
+            return 126
+
+        return int(self.config["adaptor"]["cache"]["seed"])
+
 
 
 
