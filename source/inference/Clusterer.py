@@ -21,21 +21,24 @@ class Clusterer:
     def groupDataIntoClusters(self):
 
         kmeans = MiniBatchKMeans(n_clusters=self.numberOfClusters)
-        pca = IncrementalPCA(n_components=32)
         featurizer = Featurizer(self.config, self.validationDataset)
         vocab = Vocab(self.config)
+
+        if self.usePCA():
+            pca = IncrementalPCA(n_components=32)
 
         logger.info("Reducing dimensionality...")
 
         # fit the pca model
-        for iteration in range(self.getIterations()):
-            if iteration % 10 == 0:
-                logger.info(" " + str(iteration) + " / " + str(self.getIterations()))
-            inputs, labels, embeddings = featurizer.featurizeOneBatch()
+        if self.usePCA():
+            for iteration in range(self.getIterations()):
+                if iteration % 10 == 0:
+                    logger.info(" " + str(iteration) + " / " + str(self.getIterations()))
+                inputs, labels, embeddings = featurizer.featurizeOneBatch()
 
-            pca.partial_fit(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
+                pca.partial_fit(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
 
-        self.validationDataset.reset()
+            self.validationDataset.reset()
 
         logger.info("Fitting model...")
 
@@ -45,10 +48,10 @@ class Clusterer:
                 logger.info(" " + str(iteration) + " / " + str(self.getIterations()))
             inputs, labels, embeddings = featurizer.featurizeOneBatch()
 
-            reducedDimensionFeatures = pca.transform(
-                numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
+            if self.usePCA():
+                embeddings = pca.transform(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
 
-            kmeans.partial_fit(reducedDimensionFeatures)
+            kmeans.partial_fit(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
 
         self.validationDataset.reset()
 
@@ -67,11 +70,11 @@ class Clusterer:
             chunkLength = embeddings.shape[1]
             batchSize = embeddings.shape[0]
 
-            reducedDimensionFeatures = pca.transform(
-                numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
+            if self.usePCA():
+                embeddings = pca.transform(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
 
             clusters = numpy.reshape(
-                kmeans.predict(reducedDimensionFeatures),
+                kmeans.predict(numpy.reshape(embeddings, (-1, embeddings.shape[-1]))),
                 (batchSize, chunkLength))
 
             for batch in range(batchSize):
@@ -125,6 +128,12 @@ class Clusterer:
         self.validationDataset.setMaximumSize(count)
 
         return self.validationDataset.size()
+
+    def usePCA(self):
+        if "use-pca" in self.config["predictor"]:
+            return bool(self.config["predictor"]["use-pca"])
+
+        return False
 
 
 

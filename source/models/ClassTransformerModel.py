@@ -133,6 +133,7 @@ class ClassTransformerModel:
         self.labels = self.graph.get_tensor_by_name("output-labels:0")
         self.features = self.graph.get_tensor_by_name("features:0")
         self.vocabLoss = self.graph.get_tensor_by_name("vocab-loss:0")
+        self.classificationLoss = self.graph.get_tensor_by_name("classification-loss:0")
         self.classLoss = self.graph.get_tensor_by_name("class-loss:0")
         self.outputProbabilities = self.graph.get_tensor_by_name("output-probabilities:0")
         self.loss = self.graph.get_tensor_by_name("loss:0")
@@ -156,7 +157,9 @@ class ClassTransformerModel:
         # class logits (batch, assignmets, sequence-length, class-size)
         classLogits = self.runClassModel(self.inputClasses)
 
-        # compute the loss
+        # compute the losses
+        self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
+            classLogits, self.classLabels), name="classification-loss")
         self.classLoss = tf.identity(self.evaluateLoss(classLogits, self.classLabels), name="class-loss")
         self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits, self.labels), name="vocab-loss")
 
@@ -431,6 +434,7 @@ class ClassTransformerModel:
 
     def setupSummaries(self):
         tf.summary.scalar('cross-entropy', self.loss)
+        tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
         tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
         tf.summary.scalar('class-cross-entropy', self.classLoss)
         tf.summary.scalar('gradient-norm', self.gradientNorm)
@@ -446,13 +450,16 @@ class ClassTransformerModel:
         #        os.path.join(self.getExperimentDirectory(), 'validation-summaries'),
         #        self.graph)
 
+    def evaluateClassificationLoss(self, batchOutputs, labels):
+        # batch outputs is [batch, sequence, assignments, class-vocab]
+        return tf.losses.sparse_softmax_cross_entropy(
+            labels=labels[:,0,:,:],
+            logits=batchOutputs[:,0,:,:])
+
     def evaluateLoss(self, batchOutputs, labels):
-        return tf.identity(
-            tf.losses.sparse_softmax_cross_entropy(
-            labels=labels,
-            logits=batchOutputs),
-            #self.klDivergence(tf.reshape(tf.one_hot(labels, batchOutputs.shape[-1]), tf.shape(batchOutputs)), batchOutputs),
-        name="loss")
+        return tf.losses.sparse_softmax_cross_entropy(
+            labels=labels[:, 1:, :, :],
+            logits=batchOutputs[:, 1:, :, :])
 
     def klDivergence(self, a, b):
         a = tf.distributions.Categorical(probs=a + numpy.finfo(float).eps)
@@ -525,7 +532,7 @@ class ClassTransformerModel:
     def generateSamples(self, sampleCount):
         samplesPerAssignment = []
 
-        # BUG: Dont sample the label
+        # TODO: BUG: Dont sample the label
         for assignment in range(self.getAssignmentCount()):
             samples, _, _ = tf.random.uniform_candidate_sampler(
                 true_classes=tf.broadcast_to(tf.range(self.vocab.getSize(), dtype=tf.int64),
