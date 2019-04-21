@@ -77,8 +77,10 @@ class TokenizerAdaptor:
     def expandOneUnicodeCharacter(self):
         for index, character in enumerate(self.buffer):
             if self.isUnicode(character):
-                self.buffer = self.buffer[:index] + list(
-                    repr(character.encode('unicode-escape'))) + self.buffer[index + 1:]
+                expanded = list(repr(character.encode('unicode-escape')))
+                self.buffer = self.buffer[:index] + expanded + self.buffer[index + 1:]
+                self.idBuffer = self.idBuffer[:index] + [self.idBuffer[index] for
+                    _ in range(len(expanded))] + self.idBuffer[index + 1:]
                 break
 
     def size(self):
