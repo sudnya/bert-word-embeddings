@@ -490,8 +490,8 @@ class ClassTransformerModel:
         # left/right labels (batch size)
         leftLabels = tf.broadcast_to(tf.reshape(possibleLabels[0,:], (batchSize, 1, 1)),
             (batchSize, subsequenceLength, 1))
-        rightLabels = tf.broadcast_to(tf.reshape(tf.where(tf.equal(labels[:, 0],
-                tf.fill((tf.shape(labels[:, 0])), self.vocab.getSameSourceToken())),
+        rightLabels = tf.broadcast_to(tf.reshape(tf.where(tf.reshape(tf.equal(labels[:, 0],
+                tf.fill((tf.shape(labels[:, 0])), self.vocab.getSameSourceToken())), tf.shape(possibleLabels[0,:])),
             possibleLabels[0,:], possibleLabels[1, :]), (batchSize, 1, 1)), (batchSize, subsequenceLength, 1))
 
         wordFeatures3d = tf.concat([wordFeaturesLeft, wordFeaturesRight], axis=2)
