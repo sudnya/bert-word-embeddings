@@ -154,14 +154,17 @@ class ClassTransformerModel:
         self.inputClasses = self.convertToClasses(self.inputTokens)
         self.classLabels  = self.convertToClasses(self.labels)
 
-        # class logits (batch, assignmets, sequence-length, class-size)
+        # class logits (batch, sequence-length, assignmets, class-size)
         classLogits = self.runClassModel(self.inputClasses)
+
+        # classification logits (batch, sequence-length, assignments, 2)
+        classificationLogits = self.runClassificationModel()
 
         # compute the losses
         self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
             self.features, self.classLabels), name="clustering-loss")
         self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
-            classLogits, self.classLabels), name="classification-loss")
+            classificationLogits, self.classLabels), name="classification-loss")
         self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :], self.classLabels[:, 1:, :]), name="class-loss")
         self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits, self.labels), name="vocab-loss")
 
@@ -462,7 +465,8 @@ class ClassTransformerModel:
         batchSize = tf.shape(features)[0]
         sequenceLength = tf.shape(features)[1]
 
-        features = tf.reshape(features, (batchSize, sequenceLength, self.getAssignmentCount(), -1))
+        features = tf.reshape(self.features, (batchSize, sequenceLength,
+            self.getAssignmentCount(), self.getEmbeddingSize()))
 
         for i in range(self.getAssignmentCount()):
             assignmentLosses.append(self.evaluatePerAssignmentClusterLoss(
@@ -501,10 +505,17 @@ class ClassTransformerModel:
         return tf.contrib.losses.metric_learning.triplet_semihard_loss(labels, features)
 
     def evaluateClassificationLoss(self, batchOutputs, labels):
+        batchSize = tf.shape(batchOutputs)[0]
+
+        # document class labels
+        documentClassLabels = tf.where(labels[:,0,:] == self.vocab.getSameSourceToken(),
+            tf.zeros((batchSize, self.getAssignmentCount()), dtype=tf.int32),
+            tf.ones((batchSize, self.getAssignmentCount()), dtype=tf.int32))
+
         # batch outputs is [batch, sequence, assignments, class-vocab]
         return tf.losses.sparse_softmax_cross_entropy(
-            labels=labels[:,0,:],
-            logits=batchOutputs[:,0,:,:])
+            labels=documentClassLabels,
+            logits=batchOutputs)
 
     def evaluateLoss(self, batchOutputs, labels):
         return tf.losses.sparse_softmax_cross_entropy(
@@ -667,6 +678,16 @@ class ClassTransformerModel:
         #print("logits", logits.shape)
 
         return logits
+
+    def runClassificationModel(self):
+        batchSize = tf.shape(self.features)[0]
+        sequenceLength = tf.shape(self.features)[1]
+
+        features = tf.reshape(self.features, (batchSize, sequenceLength,
+            self.getAssignmentCount(), self.getEmbeddingSize()))
+
+        # features is (batch-size, sequence-length, assignments, embedding-size)
+        return tf.layers.dense(features[:,0,:,:], units=2)
 
     def convertToEmbeddings(self, sequenceIds):
         assignments = []
