@@ -503,7 +503,7 @@ class ClassTransformerModel:
     def evaluateClassificationLoss(self, batchOutputs, labels):
         # batch outputs is [batch, sequence, assignments, class-vocab]
         return tf.losses.sparse_softmax_cross_entropy(
-            labels=labels[:,0,:,:],
+            labels=labels[:,0,:],
             logits=batchOutputs[:,0,:,:])
 
     def evaluateLoss(self, batchOutputs, labels):
