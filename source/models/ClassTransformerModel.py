@@ -464,7 +464,7 @@ class ClassTransformerModel:
 
         features = tf.reshape(features, (batchSize, sequenceLength, self.getAssignmentCount(), -1))
 
-        for word in range(16, 4):
+        for word in range(4):
             for i in range(self.getAssignmentCount()):
                 assignmentLosses.append(self.evaluatePerAssignmentClusterLoss(
                     features[:, :, i, :], classLabels[:, :, i], word))
@@ -490,8 +490,8 @@ class ClassTransformerModel:
         rightLabels = tf.broadcast_to(tf.reshape(tf.where(labels[:, 0] == self.vocab.getSameSourceToken(),
             possibleLabels[0,:], possibleLabels[1, :]), (batchSize, 1, 1)), (batchSize, subsequenceLength, 1))
 
-        wordFeatures3d = tf.concat([wordFeaturesLeft, wordFeaturesRight], axis=2)[:, word:word+4, :, :]
-        tripletLabels3d = tf.concat([leftLabels, rightLabels], axis=2)[:, word:word+4, :]
+        wordFeatures3d = tf.concat([wordFeaturesLeft, wordFeaturesRight], axis=2)[:, word:word+1, :, :]
+        tripletLabels3d = tf.concat([leftLabels, rightLabels], axis=2)[:, word:word+1, :]
 
         wordFeatures = tf.reshape(wordFeatures3d, (-1, self.getEmbeddingSize()))
         tripletLabels = tf.reshape(tripletLabels3d, (-1, ))
