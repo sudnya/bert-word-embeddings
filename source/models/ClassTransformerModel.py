@@ -166,7 +166,7 @@ class ClassTransformerModel:
         self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
             classificationLogits, self.classLabels), name="classification-loss")
         self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :], self.classLabels[:, 1:, :]), name="class-loss")
-        self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits, self.labels), name="vocab-loss")
+        self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits[:, 1:, :, :], self.labels[:, 1:]), name="vocab-loss")
 
         self.loss = self.classLoss + self.vocabLoss + self.clusterLoss + self.classificationLoss
 
@@ -508,11 +508,11 @@ class ClassTransformerModel:
         batchSize = tf.shape(batchOutputs)[0]
 
         # document class labels
-        documentClassLabels = tf.where(labels[:,0,:] == self.vocab.getSameSourceToken(),
+        documentClassLabels = tf.where(tf.equal(labels[:,0,:], self.vocab.getSameSourceToken()),
             tf.zeros((batchSize, self.getAssignmentCount()), dtype=tf.int32),
             tf.ones((batchSize, self.getAssignmentCount()), dtype=tf.int32))
 
-        # batch outputs is [batch, sequence, assignments, class-vocab]
+        # batch outputs is [batch, assignments, 2]
         return tf.losses.sparse_softmax_cross_entropy(
             labels=documentClassLabels,
             logits=batchOutputs)
