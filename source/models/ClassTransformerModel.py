@@ -508,7 +508,7 @@ class ClassTransformerModel:
         batchSize = tf.shape(batchOutputs)[0]
 
         # document class labels
-        documentClassLabels = tf.where(tf.equal(labels[:,0,:],
+        documentClassLabels = tf.where(tf.equal(tf.reshape(labels[:,0,:], (batchSize, self.getAssignmentCount())),
                 tf.fill((batchSize, self.getAssignmentCount()), self.vocab.getSameSourceToken())),
             tf.zeros((batchSize, self.getAssignmentCount()), dtype=tf.int32),
             tf.ones((batchSize, self.getAssignmentCount()), dtype=tf.int32))
