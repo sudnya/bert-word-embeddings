@@ -158,12 +158,14 @@ class ClassTransformerModel:
         classLogits = self.runClassModel(self.inputClasses)
 
         # compute the losses
+        self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
+            self.features, self.classLabels), name="clustering-loss")
         self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
             classLogits, self.classLabels), name="classification-loss")
-        self.classLoss = tf.identity(self.evaluateLoss(classLogits, self.classLabels), name="class-loss")
+        self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :], self.classLabels[:, 1:, :]), name="class-loss")
         self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits, self.labels), name="vocab-loss")
 
-        self.loss = self.classLoss + self.vocabLoss
+        self.loss = self.classLoss + self.vocabLoss + self.clusterLoss + self.classificationLoss
 
         # convert to vocab logits (batch, sequence-length, vocab-size)
         vocabLogits = self.expandClassLogitsToVocab(classLogits)
@@ -290,7 +292,8 @@ class ClassTransformerModel:
                     weights[memberIndex] = 1.0 / currentClassSize
 
                 if currentClass == 0 or i == (len(sortedWordCounts) - 1):
-                    logger.info("current class " + str(currentClass) + " members " + str(len(currentClassMembers)))
+                    logger.info("current class " + str(currentClass) +
+                        " members " + str(len(currentClassMembers)))
 
                 currentClass += 1
                 currentClassSize = 0
@@ -433,10 +436,11 @@ class ClassTransformerModel:
         return optimizer.apply_gradients(zip(gradients, variables))
 
     def setupSummaries(self):
-        tf.summary.scalar('cross-entropy', self.loss)
+        tf.summary.scalar('total-loss', self.loss)
         tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
         tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
         tf.summary.scalar('class-cross-entropy', self.classLoss)
+        tf.summary.scalar('cluster-loss', self.clusterLoss)
         tf.summary.scalar('gradient-norm', self.gradientNorm)
 
         self.mergedSummary = tf.summary.merge_all()
@@ -450,6 +454,52 @@ class ClassTransformerModel:
         #        os.path.join(self.getExperimentDirectory(), 'validation-summaries'),
         #        self.graph)
 
+    def evaluateClusteringLoss(self, features, classLabels):
+        # features is [batch, sequence, assignments, feature-dimension]
+        # class labels is [batch, sequence, assignments]
+        assignmentLosses = []
+
+        batchSize = tf.shape(features)[0]
+        sequenceLength = tf.shape(features)[1]
+
+        features = tf.reshape(features, (batchSize, sequenceLength, self.getAssignmentCount(), -1))
+
+        for i in range(self.getAssignmentCount()):
+            assignmentLosses.append(self.evaluatePerAssignmentClusterLoss(
+                features[:, :, i, :], classLabels[:, :, i]))
+
+        return sum(assignmentLosses) / self.getAssignmentCount()
+
+    def evaluatePerAssignmentClusterLoss(self, features, labels):
+        # features is [batch, sequence, feature-dim]
+        # labels is [batch, sequence]
+        batchSize = tf.shape(features)[0]
+        sequenceLength = tf.shape(features)[1]
+        subsequenceLength = (sequenceLength - 3) // 2
+
+        # word features left/right (batch, subsequence, 1, feature-dim)
+        wordFeaturesLeft = tf.expand_dims(features[:, 1:subsequenceLength+1, :], axis=2)
+        wordFeaturesRight = tf.expand_dims(features[:, 2+subsequenceLength:2+2*subsequenceLength, :], axis=2)
+
+        possibleLabels = tf.reshape(tf.range(batchSize * 2), (2, -1))
+
+        # left/right labels (batch size)
+        leftLabels = tf.broadcast_to(tf.reshape(possibleLabels[0,:], (batchSize, 1, 1)),
+            (batchSize, subsequenceLength, 1))
+        rightLabels = tf.broadcast_to(tf.reshape(tf.where(labels[:, 0] == self.vocab.getSameSourceToken(),
+            possibleLabels[0,:], possibleLabels[1, :]), (batchSize, 1, 1)), (batchSize, subsequenceLength, 1))
+
+        wordFeatures3d = tf.concat([wordFeaturesLeft, wordFeaturesRight], axis=2)
+        tripletLabels3d = tf.concat([leftLabels, rightLabels], axis=2)
+
+        wordFeatures = tf.reshape(wordFeatures3d, (-1, self.getEmbeddingSize()))
+        tripletLabels = tf.reshape(tripletLabels3d, (-1, ))
+
+        return self.tripletLoss(wordFeatures, tripletLabels)
+
+    def tripletLoss(self, features, labels):
+        return tf.contrib.losses.metric_learning.triplet_semihard_loss(labels, features)
+
     def evaluateClassificationLoss(self, batchOutputs, labels):
         # batch outputs is [batch, sequence, assignments, class-vocab]
         return tf.losses.sparse_softmax_cross_entropy(
@@ -458,8 +508,8 @@ class ClassTransformerModel:
 
     def evaluateLoss(self, batchOutputs, labels):
         return tf.losses.sparse_softmax_cross_entropy(
-            labels=labels[:, 1:, :, :],
-            logits=batchOutputs[:, 1:, :, :])
+            labels=labels,
+            logits=batchOutputs)
 
     def klDivergence(self, a, b):
         a = tf.distributions.Categorical(probs=a + numpy.finfo(float).eps)
@@ -527,7 +577,7 @@ class ClassTransformerModel:
         # vocab logits is (batch size, sequence length, sample count + 1)
         vocabLogits = tf.reduce_mean(weightedLogits, axis=2)
 
-        return self.evaluateLoss(vocabLogits, sampledLabels)
+        return self.evaluateLoss(vocabLogits[:, 1:, :], sampledLabels[:, 1:])
 
     def generateSamples(self, sampleCount):
         samplesPerAssignment = []
@@ -691,9 +741,11 @@ class ClassTransformerModel:
 
         return embeddings + positionEmbeddings
 
-
     def isMiddleLayer(self, layer):
-        return layer == (self.getNumberOfLayers() // 2)
+        if self.getNumberOfLayers() > 1:
+            return layer == (self.getNumberOfLayers() - 2)
+
+        return layer == (self.getNumberOfLayers() - 1)
 
     def multiheadedAttention(self, embeddings):
         # embeddings (batch-size, sequence-length, assignments, hidden-dimension)

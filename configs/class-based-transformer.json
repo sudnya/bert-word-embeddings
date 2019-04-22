@@ -22,11 +22,11 @@
     {
         "chunking" :
         {
-            "size" : 32
+            "size" : 16
         },
         "batching" :
         {
-            "size" : 128
+            "size" : 8
         }
     },
     "trainingDataSources" :
