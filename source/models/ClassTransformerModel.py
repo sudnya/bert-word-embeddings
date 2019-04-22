@@ -466,7 +466,7 @@ class ClassTransformerModel:
 
         for i in range(self.getAssignmentCount()):
             assignmentLosses.append(self.evaluatePerAssignmentClusterLoss(
-                features[:2, :, i, :], classLabels[:2, :, i], word))
+                features[:2, :, i, :], classLabels[:2, :, i]))
 
         return sum(assignmentLosses) / (2 * self.getAssignmentCount())
 
