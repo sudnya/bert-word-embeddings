@@ -690,11 +690,13 @@ class ClassTransformerModel:
         batchSize = tf.shape(self.features)[0]
         sequenceLength = tf.shape(self.features)[1]
 
-        features = tf.reshape(self.features, (batchSize, sequenceLength,
+        features = tf.reshape(features, (batchSize, sequenceLength,
             self.getAssignmentCount(), self.getEmbeddingSize()))
 
+        features = self.multiheadedAttention(features)
+
         # features is (batch-size, sequence-length, assignments, embedding-size)
-        return tf.layers.dense(tf.reduce_mean(features, axis=1), units=2)
+        return tf.layers.dense(tf.reduce_max(features, axis=1), units=2)
 
     def convertToEmbeddings(self, sequenceIds):
         assignments = []
