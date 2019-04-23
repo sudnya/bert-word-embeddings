@@ -690,7 +690,7 @@ class ClassTransformerModel:
         batchSize = tf.shape(self.features)[0]
         sequenceLength = tf.shape(self.features)[1]
 
-        features = tf.reshape(features, (batchSize, sequenceLength,
+        features = tf.reshape(self.features, (batchSize, sequenceLength,
             self.getAssignmentCount(), self.getEmbeddingSize()))
 
         features = self.multiheadedAttention(features)
