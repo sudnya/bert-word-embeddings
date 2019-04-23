@@ -25,6 +25,8 @@ class LabelAdaptor:
         chunk, documentId = zip(*chunk)
         secondChunk, secondDocumentId = zip(*secondChunk)
 
+        isFromSameSource = (documentId == secondDocumentId)
+
         labels = self.addTokenLabels(chunk, secondChunk, isFromSameSource)
         inputs = self.maskOffTokens(labels)
 
