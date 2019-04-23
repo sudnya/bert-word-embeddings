@@ -138,7 +138,7 @@ class ClassTransformerModel:
         self.labels = self.graph.get_tensor_by_name("output-labels:0")
         self.features = self.graph.get_tensor_by_name("features:0")
         self.vocabLoss = self.graph.get_tensor_by_name("vocab-loss:0")
-        self.classificationLoss = self.graph.get_tensor_by_name("classification-loss:0")
+        #self.classificationLoss = self.graph.get_tensor_by_name("classification-loss:0")
         self.classLoss = self.graph.get_tensor_by_name("class-loss:0")
         self.outputProbabilities = self.graph.get_tensor_by_name("output-probabilities:0")
         self.loss = self.graph.get_tensor_by_name("loss:0")
@@ -166,17 +166,18 @@ class ClassTransformerModel:
         classificationLogits = self.runClassificationModel()
 
         # compute the losses
-        #self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
-        #    self.features, self.classLabels), name="clustering-loss")
-        self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
-            classificationLogits, self.classLabels), name="classification-loss")
+        self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
+            self.features, self.classLabels), name="clustering-loss")
+        #self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
+        #    classificationLogits, self.classLabels), name="classification-loss")
         self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :], self.classLabels[:, 1:, :]), name="class-loss")
         self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits[:, 1:, :, :], self.labels[:, 1:]), name="vocab-loss")
 
         self.loss = tf.identity(self.classLoss +
-            self.vocabLoss +
-            #self.clusterLoss +
-            self.classificationLoss, name="loss")
+            #self.classificationLoss +
+            self.clusterLoss +
+            self.vocabLoss,
+            name="loss")
 
         # convert to vocab logits (batch, sequence-length, vocab-size)
         vocabLogits = self.expandClassLogitsToVocab(classLogits)
@@ -448,10 +449,10 @@ class ClassTransformerModel:
 
     def setupSummaries(self):
         tf.summary.scalar('total-loss', self.loss)
-        tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
+        #tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
         tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
         tf.summary.scalar('class-cross-entropy', self.classLoss)
-        #tf.summary.scalar('cluster-loss', self.clusterLoss)
+        tf.summary.scalar('cluster-loss', self.clusterLoss)
         tf.summary.scalar('gradient-norm', self.gradientNorm)
 
         self.mergedSummary = tf.summary.merge_all()
