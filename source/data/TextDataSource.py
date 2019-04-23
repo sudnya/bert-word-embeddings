@@ -36,6 +36,8 @@ class TextDataSource:
 
     def shuffleDocuments(self):
         self.random.shuffle(self.files)
+        self.file = open(self.files[0], encoding='ISO-8859-1')
+        self.index = 1
 
     def clone(self):
         return TextDataSource(self.config, self.sourceConfig)
