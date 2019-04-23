@@ -78,8 +78,11 @@ class ModelDescriptionCheckpointer:
     def getConfigFilePath(self):
         return os.path.join(self.getCheckpointRoot(), "config.json")
 
-    def getModelDirectory(self):
-        return os.path.join(self.getExperimentDirectory(), "model")
+    def getModelSaveDirectory(self):
+        return os.path.join(self.getCheckpointRoot(), "model")
+
+    def getModelLoadDirectory(self):
+        return os.path.join(self.getCheckpointRoot(), "model")
 
     def getExperimentDirectory(self):
         return self.config["model"]["directory"]

@@ -105,7 +105,7 @@ class ClassTransformerModel:
         self.vocab = Vocab(self.config)
 
         shouldCreate = not os.path.exists(
-            self.checkpointer.getModelDirectory()) or self.getShouldCreateModel()
+            self.checkpointer.getModelLoadDirectory()) or self.getShouldCreateModel()
 
         if shouldCreate:
             self.createModel()
@@ -119,7 +119,7 @@ class ClassTransformerModel:
 
         self.checkpointer.load()
 
-        directory = self.checkpointer.getModelDirectory()
+        directory = self.checkpointer.getModelLoadDirectory()
 
         logger.debug("Loading checkpoint from: " + str(directory))
 
@@ -166,14 +166,17 @@ class ClassTransformerModel:
         classificationLogits = self.runClassificationModel()
 
         # compute the losses
-        self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
-            self.features, self.classLabels), name="clustering-loss")
+        #self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
+        #    self.features, self.classLabels), name="clustering-loss")
         self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
             classificationLogits, self.classLabels), name="classification-loss")
         self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :], self.classLabels[:, 1:, :]), name="class-loss")
         self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits[:, 1:, :, :], self.labels[:, 1:]), name="vocab-loss")
 
-        self.loss = tf.identity(self.classLoss + self.vocabLoss + self.clusterLoss + self.classificationLoss, name="loss")
+        self.loss = tf.identity(self.classLoss +
+            self.vocabLoss +
+            #self.clusterLoss +
+            self.classificationLoss, name="loss")
 
         # convert to vocab logits (batch, sequence-length, vocab-size)
         vocabLogits = self.expandClassLogitsToVocab(classLogits)
@@ -448,7 +451,7 @@ class ClassTransformerModel:
         tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
         tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
         tf.summary.scalar('class-cross-entropy', self.classLoss)
-        tf.summary.scalar('cluster-loss', self.clusterLoss)
+        #tf.summary.scalar('cluster-loss', self.clusterLoss)
         tf.summary.scalar('gradient-norm', self.gradientNorm)
 
         self.mergedSummary = tf.summary.merge_all()
@@ -853,7 +856,7 @@ class ClassTransformerModel:
         """
 
         self.checkpointer.setPrefix(prefix)
-        directory = self.checkpointer.getModelDirectory()
+        directory = self.checkpointer.getModelSaveDirectory()
         logger.debug("Saving checkpoint to: " + str(directory))
 
         self.checkpointer.checkpoint()
