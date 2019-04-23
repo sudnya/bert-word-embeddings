@@ -14,9 +14,9 @@ class TextDataSource:
         index = self.getIndex()
 
         if len(c) == 0:
-            if self.index < len(self.files):
-                self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
+            if self.index + 1 < len(self.files):
                 self.index += 1
+                self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
 
                 c = self.file.read(1)
                 index = self.getIndex()
@@ -34,14 +34,13 @@ class TextDataSource:
         assert len(self.files) > 0, "No files found in " + self.getPath()
         self.file = open(self.files[0], encoding='ISO-8859-1')
         self.indices = list(range(len(self.files)))
-        self.index = 1
+        self.index = 0
         self.random = numpy.random.RandomState(seed=self.getSeed())
 
     def shuffleDocuments(self):
         self.random.shuffle(self.indices)
         self.index = 0
         self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
-        self.index = 1
 
     def getIndex(self):
         return self.indices[self.index]
