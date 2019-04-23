@@ -692,7 +692,7 @@ class ClassTransformerModel:
             self.getAssignmentCount(), self.getEmbeddingSize()))
 
         # features is (batch-size, sequence-length, assignments, embedding-size)
-        return tf.layers.dense(features[:,0,:,:], units=2)
+        return tf.layers.dense(tf.reduce_mean(features, axis=1), units=2)
 
     def convertToEmbeddings(self, sequenceIds):
         assignments = []
