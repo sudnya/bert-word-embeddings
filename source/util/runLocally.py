@@ -138,12 +138,15 @@ def loadConfig(arguments):
         if os.path.exists(checkpointConfigPath):
             arguments["config_file"] = checkpointConfigPath
             vocabPath = os.path.join(arguments["model_path"], "checkpoint", "vocab.txt")
+            modelPath = os.path.join(arguments["model_path"], "checkpoint")
         elif os.path.exists(bestConfigPath):
             arguments["config_file"] = bestConfigPath
             vocabPath = os.path.join(arguments["model_path"], "best", "vocab.txt")
+            modelPath = os.path.join(arguments["model_path"], "best")
         else:
             arguments["config_file"] = os.path.join(arguments["model_path"], 'config.json')
             vocabPath = os.path.join(arguments["model_path"], "vocab.txt")
+            modelPath = arguments["model_path"]
 
     try:
         with open(arguments["config_file"]) as configFile:
@@ -153,6 +156,7 @@ def loadConfig(arguments):
 
     if arguments["model_path"] != "":
         config["model"]["vocab"] = vocabPath
+        config["model"]["directory"] = modelPath
 
     if len(arguments["test_set"]) > 0:
         config["validationDataSources"] = [{ "type" : "TextDataSource",
@@ -246,9 +250,6 @@ def runLocally(arguments):
             if not "predictor" in config:
                 config["predictor"] = {}
 
-            if "model" in config:
-                config["model"]["directory"] = arguments["model_path"]
-
             validationData = getValidationData(config)
             predictor = getPredictor(config, validationData)
             perplexity = predictor.predict()
@@ -256,8 +257,6 @@ def runLocally(arguments):
             print("Perplexity " + str(perplexity))
 
         elif arguments["make_clusters"]:
-            if "model" in config:
-                config["model"]["directory"] = arguments["model_path"]
 
             validationData = getValidationData(config)
             clusterer = getClusterer(config, validationData, arguments["output_directory"],

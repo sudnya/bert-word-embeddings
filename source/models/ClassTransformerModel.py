@@ -57,10 +57,12 @@ class ClassTransformerModel:
             self.checkpoint("best")
             return
 
-        if self.totalVocabLoss < self.bestValidationLoss:
+        if self.totalLoss < self.bestValidationLoss:
+            logger.info("Updating best model with loss: " + str(self.totalLoss))
+            self.bestValidationLoss = self.totalLoss
             self.checkpoint("best")
         else:
-            self.checkpoint()
+            self.checkpoint("checkpoint")
 
 
     def predict(self, inputs, requestedPredictions):
@@ -363,7 +365,7 @@ class ClassTransformerModel:
 
         validationStart = time.time()
 
-        totalLoss = 0.0
+        self.totalLoss = 0.0
         self.totalVocabLoss = 0.0
 
         for step in range(self.getValidationStepsPerEpoch()):
@@ -377,14 +379,14 @@ class ClassTransformerModel:
             loss, vocabLoss = self.validationStep(inputs, labels)
             validationStepEnd = time.time()
 
-            totalLoss += loss
+            self.totalLoss += loss
             self.totalVocabLoss += vocabLoss
 
             message = ("Validation Step (" + str(step) + " / " +
                     str(self.getValidationStepsPerEpoch()) +
                 "), Generator time: " + ("%.2f" % (generatorEnd - generatorStart)) +
                 ", validation step time: " + ("%.2f" % (validationStepEnd - validationStepStart)) +
-                ", avg-loss: " + ("%.2f" % (totalLoss/(step + 1))))
+                ", avg-loss: " + ("%.2f" % (self.totalLoss/(step + 1))))
 
             print(message, end="\r", flush=True)
 
@@ -393,7 +395,7 @@ class ClassTransformerModel:
         print(message)
         logger.debug(" Validation took: " + (str(validationEnd - validationStart)) + " seconds...")
 
-        self.addValidationSummaries(totalLoss, self.totalVocabLoss, epoch)
+        self.addValidationSummaries(self.totalLoss, self.totalVocabLoss, epoch)
 
     def addValidationSummaries(self, totalLoss, vocabLoss, epoch):
 
@@ -843,7 +845,7 @@ class ClassTransformerModel:
 
         return result
 
-    def checkpoint(self, prefix=""):
+    def checkpoint(self, prefix):
         """Creates a checkpoint of the current model and saves to model
         directory.
         """

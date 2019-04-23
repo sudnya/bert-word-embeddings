@@ -37,6 +37,7 @@ class TextDataSource:
 
     def shuffleDocuments(self):
         self.random.shuffle(self.indices)
+        self.index = 0
         self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
         self.index = 1
 
