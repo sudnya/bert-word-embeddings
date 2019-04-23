@@ -11,6 +11,7 @@ class TextDataSource:
 
     def next(self):
         c = self.file.read(1)
+        index = self.getIndex()
 
         if len(c) == 0:
             if self.index < len(self.files):
@@ -18,8 +19,9 @@ class TextDataSource:
                 self.index += 1
 
                 c = self.file.read(1)
+                index = self.getIndex()
 
-        return c, self.indices
+        return c, index
 
     def getPath(self):
         return self.sourceConfig["path"]
