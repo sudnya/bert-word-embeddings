@@ -10,13 +10,13 @@
         "number-of-direct-classes" : 384,
         "number-of-layers" : 1,
         "number-of-attention-heads" : 4,
-        "steps-per-epoch" : 1000,
+        "steps-per-epoch" : 10,
         "softmax-sample-count": 1024,
         "learning-rate": 0.001,
         "word-frequency-power-law-exponent" : 0.00001,
         "gradient-clipping-factor": 10.0,
         "run-validation" : true,
-        "validation-steps-per-epoch" : 100
+        "validation-steps-per-epoch" : 10
     },
     "adaptor" :
     {

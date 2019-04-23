@@ -133,7 +133,17 @@ def makeExperiment(config):
 
 def loadConfig(arguments):
     if arguments["model_path"] != "":
-        arguments["config_file"] = os.path.join(arguments["model_path"], 'config.json')
+        checkpointConfigPath = os.path.join(arguments["model_path"], "checkpoint", "config.json")
+        bestConfigPath = os.path.join(arguments["model_path"], "best", "config.json")
+        if os.path.exists(checkpointConfigPath):
+            arguments["config_file"] = checkpointConfigPath
+            vocabPath = os.path.join(arguments["model_path"], "checkpoint", "vocab.txt")
+        elif os.path.exists(bestConfigPath):
+            arguments["config_file"] = bestConfigPath
+            vocabPath = os.path.join(arguments["model_path"], "best", "vocab.txt")
+        else:
+            arguments["config_file"] = os.path.join(arguments["model_path"], 'config.json')
+            vocabPath = os.path.join(arguments["model_path"], "vocab.txt")
 
     try:
         with open(arguments["config_file"]) as configFile:
@@ -142,7 +152,7 @@ def loadConfig(arguments):
         config = {}
 
     if arguments["model_path"] != "":
-        config["model"]["vocab"] = os.path.join(arguments["model_path"], 'vocab.txt')
+        config["model"]["vocab"] = vocabPath
 
     if len(arguments["test_set"]) > 0:
         config["validationDataSources"] = [{ "type" : "TextDataSource",

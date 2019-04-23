@@ -54,11 +54,14 @@ class ClassTransformerModel:
 
     def checkpointBestModel(self):
         if self.bestValidationLoss is None:
-            self.checkpoint()
+            self.checkpoint("best")
             return
 
         if self.totalVocabLoss < self.bestValidationLoss:
+            self.checkpoint("best")
+        else:
             self.checkpoint()
+
 
     def predict(self, inputs, requestedPredictions):
         with self.graph.as_default():
@@ -168,7 +171,7 @@ class ClassTransformerModel:
         self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :], self.classLabels[:, 1:, :]), name="class-loss")
         self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits[:, 1:, :, :], self.labels[:, 1:]), name="vocab-loss")
 
-        self.loss = self.classLoss + self.vocabLoss + self.clusterLoss + self.classificationLoss
+        self.loss = tf.identity(self.classLoss + self.vocabLoss + self.clusterLoss + self.classificationLoss, name="loss")
 
         # convert to vocab logits (batch, sequence-length, vocab-size)
         vocabLogits = self.expandClassLogitsToVocab(classLogits)
@@ -397,7 +400,7 @@ class ClassTransformerModel:
         averageLoss = totalLoss / self.getValidationStepsPerEpoch()
 
         summary = tf.Summary(value=[
-            tf.Summary.Value(tag="validation-cross-entropy", simple_value=averageLoss),
+            tf.Summary.Value(tag="validation-loss", simple_value=averageLoss),
         ])
 
         self.trainingSummaryWriter.add_summary(summary, epoch)
@@ -840,20 +843,16 @@ class ClassTransformerModel:
 
         return result
 
-    def checkpoint(self):
+    def checkpoint(self, prefix=""):
         """Creates a checkpoint of the current model and saves to model
         directory.
         """
 
+        self.checkpointer.setPrefix(prefix)
         directory = self.checkpointer.getModelDirectory()
         logger.debug("Saving checkpoint to: " + str(directory))
 
         self.checkpointer.checkpoint()
-        exists = os.path.exists(directory)
-
-        if exists:
-            tempDirectory = directory + "-temp"
-            shutil.move(directory, tempDirectory)
 
         with self.graph.as_default():
             tf.saved_model.simple_save(self.session,
@@ -861,8 +860,7 @@ class ClassTransformerModel:
                 inputs={"input-tokens" : self.inputTokens},
                 outputs={"output-probabilities" : self.outputProbabilities})
 
-        if exists:
-            shutil.rmtree(tempDirectory)
+        self.checkpointer.cleanup()
 
 
     """Functions to load configuration parameters."""

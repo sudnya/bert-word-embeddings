@@ -78,7 +78,7 @@ class Clusterer:
                 (batchSize, chunkLength))
 
             for batch in range(batchSize):
-                chunk = [vocab.getTokenString(token) for token in labels[batch, :]]
+                chunk = tuple([vocab.getTokenString(token) for token in labels[batch, :]])
 
                 for wordIndex in range(chunkLength):
 
@@ -100,7 +100,7 @@ class Clusterer:
             for clusterId, words in clusterMap.items():
                 log.write("Cluster, " + str(clusterId) + "\n")
                 for word, chunk in words:
-                    log.write("    '" + word + "' " + str(chunk) + "\n")
+                    log.write("    '" + word + "' " + str(list(chunk)) + "\n")
 
         # write histograms
         with open(self.getOutputHistogramFileName(), "w") as log:
@@ -110,9 +110,23 @@ class Clusterer:
                     log.write("    '" + vocab.getTokenString(wordIndex) +
                               "' " + str(count) + "\n")
 
+        # write clustered text
+        for clusterId, words in clusterMap.items():
+            uniqueChunks = set()
+
+            with open(self.getOutputClusterFileName(clusterId), "w") as log:
+                for word, chunk in words:
+                    if not chunk in uniqueChunks:
+                        uniqueChunks.add(chunk)
+                        subsequenceLength = (len(chunk) - 3) // 2
+                        log.write("".join(chunk[1:subsequenceLength+1]) + "\n")
+
 
     def getOutputFileName(self):
         return os.path.join(self.outputDirectory, "clusters.txt")
+
+    def getOutputClusterFileName(self, cluster):
+        return os.path.join(self.outputDirectory, "id-" + str(cluster) + "-cluster.txt")
 
     def getOutputHistogramFileName(self):
         return os.path.join(self.outputDirectory, "histogram.txt")
