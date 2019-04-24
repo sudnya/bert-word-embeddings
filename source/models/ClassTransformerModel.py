@@ -497,8 +497,7 @@ class ClassTransformerModel:
                 features[:, :, :, i, :], classLabels[:, :, :, i]))
 
         return sum(assignmentLosses) / (tf.multiply(tf.cast(batchSize, dtype=tf.float32),
-            tf.multiply(tf.cast(sequenceLength, dtype=tf.float32),
-            2.0 * self.getAssignmentCount())))
+            2.0 * self.getAssignmentCount()))
 
     def evaluatePerAssignmentClusterLoss(self, features, labels):
         # features is [batch, sequence, 2, feature-dim]
