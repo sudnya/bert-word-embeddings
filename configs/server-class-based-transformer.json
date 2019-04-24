@@ -4,13 +4,13 @@
         "type" : "ClassTransformerModel",
         "vocab" : "/data/1tb-ssd/language/vocabs/vocab-guttenberg-256k.txt",
         "epochs" : 20,
-        "embedding-size" : 512,
-        "assignment-count" : 2,
+        "embedding-size" : 128,
+        "assignment-count" : 1,
         "number-of-classes" : 16384,
         "number-of-direct-classes" : 12288,
         "number-of-layers" : 2,
         "number-of-attention-heads" : 4,
-        "steps-per-epoch" : 100000,
+        "steps-per-epoch" : 5000,
         "softmax-sample-count": 512,
         "learning-rate": 0.0005,
         "word-frequency-power-law-exponent" : 0.00001,
@@ -22,11 +22,11 @@
     {
         "chunking" :
         {
-            "size" : 32
+            "size" : 16
         },
         "batching" :
         {
-            "size" : 128
+            "size" : 64
         }
     },
     "trainingDataSources" :
