@@ -494,9 +494,9 @@ class ClassTransformerModel:
 
         for i in range(self.getAssignmentCount()):
             assignmentLosses.append(self.evaluatePerAssignmentClusterLoss(
-                features[:2, :, :, i, :], classLabels[:2, :, :, i]))
+                features[:, :, :, i, :], classLabels[:, :, :, i]))
 
-        return sum(assignmentLosses) / (2 * self.getAssignmentCount())
+        return sum(assignmentLosses) / (batchSize * sequenceLength * 2 * self.getAssignmentCount())
 
     def evaluatePerAssignmentClusterLoss(self, features, labels):
         # features is [batch, sequence, 2, feature-dim]
