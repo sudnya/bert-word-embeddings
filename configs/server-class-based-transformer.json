@@ -10,6 +10,7 @@
         "number-of-direct-classes" : 12288,
         "number-of-layers" : 2,
         "number-of-attention-heads" : 4,
+        "number-of-document-classes" : 1024,
         "steps-per-epoch" : 100000,
         "softmax-sample-count": 512,
         "learning-rate": 0.0005,

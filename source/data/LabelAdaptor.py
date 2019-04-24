@@ -25,27 +25,22 @@ class LabelAdaptor:
         chunk, documentId = zip(*chunk)
         secondChunk, secondDocumentId = zip(*secondChunk)
 
-        isFromSameSource = (documentId[0] == secondDocumentId[0])
-
-        labels = self.addTokenLabels(chunk, secondChunk, isFromSameSource)
+        labels = self.addTokenLabels(chunk, documentId)
         inputs = self.maskOffTokens(labels)
 
-        return inputs, labels
+        secondLabels = self.addTokenLabels(secondChunk, secondDocumentId)
+        secondInputs = self.maskOffTokens(secondLabels)
 
-    def addTokenLabels(self, chunk, secondChunk, isFromSameSource):
-        sourceToken = (Vocab.getSameSourceToken() if isFromSameSource else
-            Vocab.getDifferentSourceToken())
+        return inputs, labels, secondInputs, secondLabels
 
-        return ([sourceToken] + list(chunk) + [Vocab.getSeparatorToken()] +
-            list(secondChunk) + [Vocab.getSeparatorToken()])
+    def addTokenLabels(self, chunk, documentIds):
+
+        return [documentIds[0]] + list(chunk)
 
     def maskOffTokens(self, labels):
         inputs = list(labels)
 
-        size = (len(labels) - 3) // 2
-
-        chunkTokens = list(range(1, size)) + list(range(size + 1, 2 * size + 1))
-        for i in chunkTokens:
+        for i in range(1, len(labels)):
             if self.random.binomial(1, 0.15):
                 if self.random.binomial(1, 0.8):
                     inputs[i] = Vocab.getMaskToken()
