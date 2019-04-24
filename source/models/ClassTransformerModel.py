@@ -429,7 +429,7 @@ class ClassTransformerModel:
 
         self.trainingSummaryWriter.add_summary(summary, epoch)
 
-    def validationStep(self, inputs, labels):
+    def validationStep(self, inputs, labels, secondInputs, secondLabels):
         """One minibatch of validation data processed by the model."""
 
         inputs = numpy.expand_dims(numpy.array(inputs), axis=2)
