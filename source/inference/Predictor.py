@@ -22,7 +22,7 @@ class Predictor:
         logger.debug("Running predictor for " + str(self.getIterations()) + " iterations")
 
         for i in range(self.getIterations()):
-            inputs, labels = self.validationDataset.next()
+            inputs, labels, _, _ = self.validationDataset.next()
 
             logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
@@ -36,7 +36,7 @@ class Predictor:
     def getIterations(self):
         if "iterations" in self.config["predictor"]:
             return int(self.config["predictor"]["iterations"])
-        
+
         if "validationStepsPerEpoch" in self.config["model"]:
             return int(self.config["model"]["validationStepsPerEpoch"])
 

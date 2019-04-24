@@ -69,6 +69,8 @@ class ClassTransformerModel:
         with self.graph.as_default():
             self.getOrLoadModel()
 
+        assert False, "Not Implemented"
+
         inputs = numpy.array(inputs)
 
         predictions = self.session.run(self.outputProbabilities,
@@ -138,43 +140,45 @@ class ClassTransformerModel:
         self.labels = self.graph.get_tensor_by_name("output-labels:0")
         self.features = self.graph.get_tensor_by_name("features:0")
         self.vocabLoss = self.graph.get_tensor_by_name("vocab-loss:0")
-        #self.classificationLoss = self.graph.get_tensor_by_name("classification-loss:0")
+        self.classificationLoss = self.graph.get_tensor_by_name("classification-loss:0")
         self.classLoss = self.graph.get_tensor_by_name("class-loss:0")
         self.outputProbabilities = self.graph.get_tensor_by_name("output-probabilities:0")
         self.loss = self.graph.get_tensor_by_name("loss:0")
         self.optimizerStep = self.graph.get_operation_by_name("optimizer-step")
 
     def createModel(self):
-        # inputs (batch, sequence-length)
-        self.inputTokens = tf.placeholder(tf.int32, shape=(None, None),
+        # inputs (batch, sequence-length, 2)
+        self.inputTokens = tf.placeholder(tf.int32, shape=(None, None, 2),
                 name="input-tokens")
 
-        # labels (batch, sequence-length)
-        self.labels = tf.placeholder(tf.int32, shape=(None, None),
+        # labels (batch, sequence-length, 2)
+        self.labels = tf.placeholder(tf.int32, shape=(None, None, 2),
                 name="output-labels")
 
         self.createClassMappings()
 
-        # convert to classes (batch, sequence-length, assignments)
+        # convert to classes (batch, sequence-length, 2, assignments)
         self.inputClasses = self.convertToClasses(self.inputTokens)
         self.classLabels  = self.convertToClasses(self.labels)
 
-        # class logits (batch, sequence-length, assignmets, class-size)
+        # class logits (batch, sequence-length, 2, assignmets, class-size)
         classLogits = self.runClassModel(self.inputClasses)
 
-        # classification logits (batch, sequence-length, assignments, 2)
+        # classification logits (batch, sequence-length, 2, assignments, 2)
         classificationLogits = self.runClassificationModel()
 
         # compute the losses
         self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
             self.features, self.classLabels), name="clustering-loss")
-        #self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
-        #    classificationLogits, self.classLabels), name="classification-loss")
-        self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :], self.classLabels[:, 1:, :]), name="class-loss")
-        self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits[:, 1:, :, :], self.labels[:, 1:]), name="vocab-loss")
+        self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
+            classificationLogits, self.classLabels), name="classification-loss")
+        self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :, :],
+            self.classLabels[:, 1:, :, :]), name="class-loss")
+        self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits[:, 1:, :, :, :],
+            self.labels[:, 1:, :]), name="vocab-loss")
 
         self.loss = tf.identity(self.classLoss +
-            #self.classificationLoss +
+            self.classificationLoss +
             self.clusterLoss +
             self.vocabLoss,
             name="loss")
@@ -326,12 +330,13 @@ class ClassTransformerModel:
         for step in range(self.getStepsPerEpoch()):
             generatorStart = time.time()
 
-            inputs, labels = self.trainingDataSource.next()
+            inputs, labels, secondInputs, secondLabels = self.trainingDataSource.next()
 
             generatorEnd = time.time()
 
             trainStepStart = time.time()
-            loss, gradNorm = self.trainingStep(inputs, labels, step, epoch)
+            loss, gradNorm = self.trainingStep(inputs, labels, secondInputs, secondLabels,
+                                               step, epoch)
             trainStepEnd = time.time()
 
             totalLoss += loss
@@ -352,10 +357,15 @@ class ClassTransformerModel:
         print(message)
         logger.debug(" Training took: " + (str(trainEnd - trainStart)) + " seconds...")
 
-    def trainingStep(self, inputs, labels, step, epoch):
+    def trainingStep(self, inputs, labels, secondInputs, secondLabels, step, epoch):
         """Training step for one minibatch of training data."""
-        inputs = numpy.array(inputs)
-        labels = numpy.array(labels)
+        inputs = numpy.expand_dims(numpy.array(inputs), axis=2)
+        labels = numpy.expand_dims(numpy.array(labels), axis=2)
+        secondInputs = numpy.expand_dims(numpy.array(secondInputs), axis=2)
+        secondLabels = numpy.expand_dims(numpy.array(secondLabels), axis=2)
+
+        inputs = numpy.concatenate([inputs, secondInputs], axis=2)
+        labels = numpy.concatenate([labels, secondLabels], axis=2)
 
         trainingLoss, gradNorm, summaries, _ = self.session.run([self.loss,
             self.gradientNorm, self.mergedSummary, self.optimizerStep],
@@ -375,12 +385,12 @@ class ClassTransformerModel:
         for step in range(self.getValidationStepsPerEpoch()):
             generatorStart = time.time()
 
-            inputs, labels = self.validationDataSource.next()
+            inputs, labels, secondInputs, secondLabels = self.validationDataSource.next()
 
             generatorEnd = time.time()
 
             validationStepStart = time.time()
-            loss, vocabLoss = self.validationStep(inputs, labels)
+            loss, vocabLoss = self.validationStep(inputs, labels, secondInputs, secondLabels)
             validationStepEnd = time.time()
 
             self.totalLoss += loss
@@ -422,8 +432,13 @@ class ClassTransformerModel:
     def validationStep(self, inputs, labels):
         """One minibatch of validation data processed by the model."""
 
-        inputs = numpy.array(inputs)
-        labels = numpy.array(labels)
+        inputs = numpy.expand_dims(numpy.array(inputs), axis=2)
+        labels = numpy.expand_dims(numpy.array(labels), axis=2)
+        secondInputs = numpy.expand_dims(numpy.array(secondInputs), axis=2)
+        secondLabels = numpy.expand_dims(numpy.array(secondLabels), axis=2)
+
+        inputs = numpy.concatenate([inputs, secondInputs], axis=2)
+        labels = numpy.concatenate([labels, secondLabels], axis=2)
 
         validationLoss, vocabLoss = self.session.run([self.loss, self.vocabLoss],
                 feed_dict={self.inputTokens : inputs,
@@ -449,7 +464,7 @@ class ClassTransformerModel:
 
     def setupSummaries(self):
         tf.summary.scalar('total-loss', self.loss)
-        #tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
+        tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
         tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
         tf.summary.scalar('class-cross-entropy', self.classLoss)
         tf.summary.scalar('cluster-loss', self.clusterLoss)
@@ -467,47 +482,27 @@ class ClassTransformerModel:
         #        self.graph)
 
     def evaluateClusteringLoss(self, features, classLabels):
-        # features is [batch, sequence, assignments, feature-dimension]
-        # class labels is [batch, sequence, assignments]
+        # features is [batch, sequence, 2, assignments, feature-dimension]
+        # class labels is [batch, sequence, 2, assignments]
         assignmentLosses = []
 
         batchSize = tf.shape(features)[0]
         sequenceLength = tf.shape(features)[1]
 
         features = tf.reshape(self.features, (batchSize, sequenceLength,
-            self.getAssignmentCount(), self.getEmbeddingSize()))
+            2, self.getAssignmentCount(), self.getEmbeddingSize()))
 
         for i in range(self.getAssignmentCount()):
             assignmentLosses.append(self.evaluatePerAssignmentClusterLoss(
-                features[:2, :, i, :], classLabels[:2, :, i]))
+                features[:2, :, :, i, :], classLabels[:2, :, :, i]))
 
         return sum(assignmentLosses) / (2 * self.getAssignmentCount())
 
     def evaluatePerAssignmentClusterLoss(self, features, labels):
-        # features is [batch, sequence, feature-dim]
-        # labels is [batch, sequence]
-        batchSize = tf.shape(features)[0]
-        sequenceLength = tf.shape(features)[1]
-        subsequenceLength = (sequenceLength - 3) // 2
-
-        # word features left/right (batch, subsequence, 1, feature-dim)
-        wordFeaturesLeft = tf.expand_dims(features[:, 1:subsequenceLength+1, :], axis=2)
-        wordFeaturesRight = tf.expand_dims(features[:, 2+subsequenceLength:2+2*subsequenceLength, :], axis=2)
-
-        possibleLabels = tf.reshape(tf.range(batchSize * 2), (2, -1))
-
-        # left/right labels (batch size)
-        leftLabels = tf.broadcast_to(tf.reshape(possibleLabels[0,:], (batchSize, 1, 1)),
-            (batchSize, subsequenceLength, 1))
-        rightLabels = tf.broadcast_to(tf.reshape(tf.where(tf.reshape(tf.equal(labels[:, 0],
-                tf.fill((tf.shape(labels[:, 0])), self.vocab.getSameSourceToken())), tf.shape(possibleLabels[0,:])),
-            possibleLabels[0,:], possibleLabels[1, :]), (batchSize, 1, 1)), (batchSize, subsequenceLength, 1))
-
-        wordFeatures3d = tf.concat([wordFeaturesLeft, wordFeaturesRight], axis=2)
-        tripletLabels3d = tf.concat([leftLabels, rightLabels], axis=2)
-
-        wordFeatures = tf.reshape(wordFeatures3d, (-1, self.getEmbeddingSize()))
-        tripletLabels = tf.reshape(tripletLabels3d, (-1, ))
+        # features is [batch, sequence, 2, feature-dim]
+        # labels is [batch, sequence, 2]
+        wordFeatures = tf.reshape(features[:, 0, :, :], (-1, self.getEmbeddingSize()))
+        tripletLabels = tf.reshape(labels[:, 0, :], (-1, ))
 
         return self.tripletLoss(wordFeatures, tripletLabels)
 
@@ -515,17 +510,9 @@ class ClassTransformerModel:
         return tf.contrib.losses.metric_learning.triplet_semihard_loss(labels, features)
 
     def evaluateClassificationLoss(self, batchOutputs, labels):
-        batchSize = tf.shape(batchOutputs)[0]
-
-        # document class labels
-        documentClassLabels = tf.where(tf.equal(tf.reshape(labels[:,0,:], (batchSize, self.getAssignmentCount())),
-                tf.fill((batchSize, self.getAssignmentCount()), self.vocab.getSameSourceToken())),
-            tf.zeros((batchSize, self.getAssignmentCount()), dtype=tf.int32),
-            tf.ones((batchSize, self.getAssignmentCount()), dtype=tf.int32))
-
-        # batch outputs is [batch, assignments, 2]
+        # batch outputs is [batch, 2, assignments, document-classes]
         return tf.losses.sparse_softmax_cross_entropy(
-            labels=documentClassLabels,
+            labels=labels[:, 0, :],
             logits=batchOutputs)
 
     def evaluateLoss(self, batchOutputs, labels):
@@ -539,41 +526,41 @@ class ClassTransformerModel:
         return tf.reduce_mean(tf.distributions.kl_divergence(a, b, allow_nan_stats=False))
 
     def convertToClasses(self, inputs):
-        # inputs is (batch, sequence)
+        # inputs is (batch, sequence, 2)
         # class mappings is (assignments, vocab size)
-        # outputs is (batch, sequence, assignments)
+        # outputs is (batch, sequence, 2, assignments)
         batchSize      = tf.shape(inputs)[0]
         sequenceLength = tf.shape(inputs)[1]
 
         classes = tf.concat([tf.reshape(tf.gather(self.classMappings[i, :], inputs),
-                                        (batchSize, sequenceLength, 1))
-            for i in range(self.getAssignmentCount())], axis=2)
+                                        (batchSize, sequenceLength, 2, 1))
+            for i in range(self.getAssignmentCount())], axis=3)
 
-        return tf.reshape(classes, (batchSize, sequenceLength, self.getAssignmentCount(), 1))
+        return tf.reshape(classes, (batchSize, sequenceLength, 2, self.getAssignmentCount(), 1))
 
     def expandClassLogitsToVocab(self, classLogits):
-        # class logits is (batch size, sequence-length, assignments, class-size)
+        # class logits is (batch size, sequence-length, 2, assignments, class-size)
         # class mappings is (class-assignments, vocab-size)
         # class weights is (class-assignments, vocab-size)
-        # output is (batch-size, sequence-length, vocab-size)
+        # output is (batch-size, sequence-length, 2, vocab-size)
         batchSize      = tf.shape(classLogits)[0]
         sequenceLength = tf.shape(classLogits)[1]
 
-        gatheredLogits = tf.concat([tf.reshape(tf.gather(classLogits[:,:,i,:], self.classMappings[i, :], axis=2),
-                                    (batchSize, sequenceLength, 1, self.vocab.getSize()))
-            for i in range(self.getAssignmentCount())], axis=2)
+        gatheredLogits = tf.concat([tf.reshape(tf.gather(classLogits[:,:,:,i,:], self.classMappings[i, :], axis=3),
+                                    (batchSize, sequenceLength, 2, 1, self.vocab.getSize()))
+            for i in range(self.getAssignmentCount())], axis=3)
 
-        return tf.reduce_mean(tf.multiply(gatheredLogits, self.classWeights), axis=2)
+        return tf.reduce_mean(tf.multiply(gatheredLogits, self.classWeights), axis=3)
 
     def evaluateVocabLoss(self, classLogits, vocabLabels):
-        # labels is (batch size, sequence-length)
+        # labels is (batch size, sequence-length, 2)
 
         batchSize      = tf.shape(classLogits)[0]
         sequenceLength = tf.shape(classLogits)[1]
 
         sampleCount = self.getSoftmaxSampleCount()
         samples = self.generateSamples(sampleCount)
-        sampledLabels = tf.zeros((batchSize, sequenceLength), dtype=tf.int32)
+        sampledLabels = tf.zeros((batchSize, sequenceLength, 2), dtype=tf.int32)
 
         # sampled mappings is (assignment count, sample count)
         sampledMappings = self.sample(self.classMappings, samples, sampleCount)
@@ -582,24 +569,24 @@ class ClassTransformerModel:
         sampledWeights = self.sample(self.classWeights, samples, sampleCount)
 
         # gathered logits is (batch size, sequence length, assignment count, sample count)
-        gatheredLogits = tf.concat([tf.reshape(tf.gather(classLogits[:,:,i,:], sampledMappings[i, :], axis=2),
-                                    (batchSize, sequenceLength, 1, sampleCount))
-            for i in range(self.getAssignmentCount())], axis=2)
+        gatheredLogits = tf.concat([tf.reshape(tf.gather(classLogits[:,:,:,i,:], sampledMappings[i,:], axis=3),
+                                    (batchSize, sequenceLength, 2, 1, sampleCount))
+            for i in range(self.getAssignmentCount())], axis=3)
 
-        # gathered weights is (batch size, sequence length, assignment count, sample count)
+        # gathered weights is (batch size, sequence length, 2, assignment count, sample count)
         gatheredWeights = self.broadcastToExpandedDimension(sampledWeights, batchSize, sequenceLength)
 
-        # gathered logits and weights is (batch size, sequence length, assignment count, sample count + 1)
+        # gathered logits and weights is (batch size, sequence length, 2, assignment count, sample count + 1)
         gatheredLogits  = self.extendLogits(gatheredLogits, classLogits, vocabLabels)
         gatheredWeights = self.extendWeights(gatheredWeights, vocabLabels)
 
-        # weighted logits is (batch size, sequence length, assignments, sample count + 1)
+        # weighted logits is (batch size, sequence length, 2, assignments, sample count + 1)
         weightedLogits = tf.multiply(gatheredLogits, gatheredWeights)
 
-        # vocab logits is (batch size, sequence length, sample count + 1)
-        vocabLogits = tf.reduce_mean(weightedLogits, axis=2)
+        # vocab logits is (batch size, sequence length, 2, sample count + 1)
+        vocabLogits = tf.reduce_mean(weightedLogits, axis=3)
 
-        return self.evaluateLoss(vocabLogits[:, 1:, :], sampledLabels[:, 1:])
+        return self.evaluateLoss(vocabLogits[:, 1:, :, :], sampledLabels[:, 1:, :])
 
     def generateSamples(self, sampleCount):
         samplesPerAssignment = []
@@ -619,36 +606,36 @@ class ClassTransformerModel:
         return tf.concat(samplesPerAssignment, axis=0)
 
     def extendLogits(self, vocabLogits, classLogits, labels):
-        # class logits is (batch size, sequence length, assignment count, sample count)
+        # class logits is (batch size, sequence length, 2, assignment count, sample count)
         # map is (assignment count, vocab size)
-        # labels is (batch size, sequence length)
+        # labels is (batch size, sequence length, 2)
         batchSize      = tf.shape(classLogits)[0]
         sequenceLength = tf.shape(classLogits)[1]
 
-        # labelClasses is (batch size, sequence length, assignment count, 1)
+        # labelClasses is (batch size, sequence length, 2, assignment count, 1)
         labelClasses = tf.concat(
             [tf.reshape(tf.gather(self.classMappings[i, :], labels),
-                (batchSize, sequenceLength, 1, 1)) for i in range(self.getAssignmentCount())],
-            axis=2)
+                (batchSize, sequenceLength, 2, 1, 1)) for i in range(self.getAssignmentCount())],
+            axis=3)
 
-        # gathered logits is (batch size, sequence length, assignment count, 1)
+        # gathered logits is (batch size, sequence length, 2, assignment count, 1)
         gatheredLogits = tf.batch_gather(classLogits, labelClasses)
 
-        return tf.concat([gatheredLogits, vocabLogits], axis=3)
+        return tf.concat([gatheredLogits, vocabLogits], axis=4)
 
     def extendWeights(self, vocabWeights, labels):
-        # vocab weights is (batch size, sequence length, assignment count, sample count)
+        # vocab weights is (batch size, sequence length, 2, assignment count, sample count)
         # labels is (batch size, sequence length)
         batchSize      = tf.shape(vocabWeights)[0]
         sequenceLength = tf.shape(vocabWeights)[1]
 
-        # labelWeights is (batch size, sequence length, assignment count, 1)
+        # labelWeights is (batch size, sequence length, 2, assignment count, 1)
         labelWeights = tf.concat(
             [tf.reshape(tf.gather(self.classWeights[i, :], labels),
-                (batchSize, sequenceLength, 1, 1)) for i in range(self.getAssignmentCount())],
-            axis=2)
+                (batchSize, sequenceLength, 2, 1, 1)) for i in range(self.getAssignmentCount())],
+            axis=3)
 
-        return tf.concat([labelWeights, vocabWeights], axis=3)
+        return tf.concat([labelWeights, vocabWeights], axis=4)
 
     def sample(self, mappings, samples, sampleCount):
 
@@ -663,7 +650,7 @@ class ClassTransformerModel:
         classAssignments = tensor.shape[0]
         vocabSize = tensor.shape[1]
 
-        newShape = (batchSize, sequenceLength, classAssignments, vocabSize)
+        newShape = (batchSize, sequenceLength, 2, classAssignments, vocabSize)
 
         expandedTensor = tf.broadcast_to(tensor, newShape)
 
@@ -694,20 +681,21 @@ class ClassTransformerModel:
         batchSize = tf.shape(self.features)[0]
         sequenceLength = tf.shape(self.features)[1]
 
-        features = tf.reshape(self.features, (batchSize, sequenceLength,
+        features = tf.reshape(self.features, (batchSize, sequenceLength, 2,
             self.getAssignmentCount(), self.getEmbeddingSize()))
 
         features = self.multiheadedAttention(features)
 
-        # features is (batch-size, sequence-length, assignments, embedding-size)
-        return tf.layers.dense(tf.reduce_max(features, axis=1), units=2)
+        # features is (batch-size, sequence-length, 2, assignments, embedding-size)
+        return tf.layers.dense(tf.reduce_max(features, axis=1),
+            units=self.getNumberOfDocumentClasses())
 
     def convertToEmbeddings(self, sequenceIds):
         assignments = []
         for assignment in range(self.getAssignmentCount()):
             assignments.append(self.convertToClassEmbeddings(sequenceIds, assignment))
 
-        return tf.concat(assignments, axis = 2)
+        return tf.concat(assignments, axis = 3)
 
     def convertToClassEmbeddings(self, ids, assignment):
 
@@ -715,7 +703,7 @@ class ClassTransformerModel:
             wordEmbeddingsGlobal = tf.get_variable('class-embeddings-' + str(assignment), \
                     [self.getNumberOfClasses(), self.getEmbeddingSize()])
 
-        wordEmbeddings = tf.nn.embedding_lookup(wordEmbeddingsGlobal, ids[:, :, assignment, :])
+        wordEmbeddings = tf.nn.embedding_lookup(wordEmbeddingsGlobal, ids[:, :, :, assignment, :])
         return wordEmbeddings
 
     def runEncoder(self, embeddings):
@@ -725,16 +713,16 @@ class ClassTransformerModel:
 
         batchSize      = tf.shape(embeddings)[0]
         sequenceLength = tf.shape(embeddings)[1]
-        # embeddings is (batch size, sequence length, assignments, classes)
+        # embeddings is (batch size, sequence length, 2, assignments, classes)
         return tf.concat([tf.reshape(tf.layers.dense(embeddings[:,:,i,:], units=self.getNumberOfClasses()),
-                (batchSize, sequenceLength, 1, self.getNumberOfClasses()))
-            for i in range(self.getAssignmentCount())], axis=2)
+                (batchSize, sequenceLength, 2, 1, self.getNumberOfClasses()))
+            for i in range(self.getAssignmentCount())], axis=3)
 
     def multiheadedAttentionStack(self, embeddings):
 
         embeddings = self.addPositions(embeddings)
 
-        # embeddings (batch-size, sequence-length, assignments, hidden-dimension)
+        # embeddings (batch-size, sequence-length, 2, assignments, hidden-dimension)
         for layer in range(self.getNumberOfLayers()):
             embeddings = self.multiheadedAttention(embeddings)
 
@@ -742,7 +730,7 @@ class ClassTransformerModel:
                 batchSize      = tf.shape(embeddings)[0]
                 sequenceLength = tf.shape(embeddings)[1]
 
-                self.features = tf.identity(tf.reshape(embeddings, (batchSize, sequenceLength,
+                self.features = tf.identity(tf.reshape(embeddings, (batchSize, sequenceLength, 2,
                     self.getAssignmentCount() * self.getEmbeddingSize())), name="features")
 
         return embeddings
@@ -754,24 +742,24 @@ class ClassTransformerModel:
         halfSequenceLength = (sequenceLength + 1) // 2
 
         positions = tf.cast(tf.reshape(tf.range(halfSequenceLength),
-            (1, halfSequenceLength, 1, 1)), dtype=tf.float32)
+            (1, halfSequenceLength, 1, 1, 1)), dtype=tf.float32)
         dimensions = tf.cast(tf.reshape(tf.range(self.getEmbeddingSize()),
-            (1, 1, 1, self.getEmbeddingSize())), dtype=tf.float32)
+            (1, 1, 1, 1, self.getEmbeddingSize())), dtype=tf.float32)
 
         angles = positions / tf.pow(2.0 * tf.cast(halfSequenceLength, dtype=tf.float32),
                                     2.0 * dimensions / self.getEmbeddingSize())
 
         evenPositionEmbeddings = tf.reshape(tf.sin(angles),
-            (1, halfSequenceLength, 1, 1, self.getEmbeddingSize()))
+            (1, halfSequenceLength, 1, 1, 1, self.getEmbeddingSize()))
         oddPositionEmbeddings  = tf.reshape(tf.cos(angles),
-            (1, halfSequenceLength, 1, 1, self.getEmbeddingSize()))
+            (1, halfSequenceLength, 1, 1, 1, self.getEmbeddingSize()))
 
         # merge them
         positionEmbeddings = tf.concat([evenPositionEmbeddings, oddPositionEmbeddings], axis=2)
         positionEmbeddings = tf.reshape(positionEmbeddings,
-            (1, 2 * halfSequenceLength, 1, self.getEmbeddingSize()))
+            (1, 2 * halfSequenceLength, 1, 1, self.getEmbeddingSize()))
 
-        positionEmbeddings = positionEmbeddings[:, 0:sequenceLength, :, :]
+        positionEmbeddings = positionEmbeddings[:, 0:sequenceLength, :, :, :]
 
         return embeddings + positionEmbeddings
 
@@ -809,21 +797,21 @@ class ClassTransformerModel:
 
         batchSize      = tf.shape(embeddings)[0]
         sequenceLength = tf.shape(embeddings)[1]
-        assignments    = embeddings.shape[2]
+        assignments    = embeddings.shape[3]
 
         return tf.reshape(output,
-            (batchSize, sequenceLength, assignments, 3,
+            (batchSize, sequenceLength, 2, assignments, 3,
              self.getNumberOfAttentionHeads(), embeddings.shape[-1]))
 
     def projectBackEmbeddings(self, embeddings):
-        # embeddings are (batch-size, sequence-length, assignments, attention-heads, embedding-size)
-        # project to (batch-size, sequece-length, assignments, embedding-size)
+        # embeddings are (batch-size, sequence-length, 2, assignments, attention-heads, embedding-size)
+        # project to (batch-size, sequece-length, 2, assignments, embedding-size)
 
         batchSize      = tf.shape(embeddings)[0]
         sequenceLength = tf.shape(embeddings)[1]
-        assignments    = embeddings.shape[2]
+        assignments    = embeddings.shape[3]
 
-        reshapedEmbeddings = tf.reshape(embeddings, (batchSize, sequenceLength, assignments,
+        reshapedEmbeddings = tf.reshape(embeddings, (batchSize, sequenceLength, 2, assignments,
             embeddings.shape[-1] * embeddings.shape[-2]))
 
         projectedEmbeddings = tf.layers.dense(reshapedEmbeddings, self.getEmbeddingSize())
@@ -834,10 +822,10 @@ class ClassTransformerModel:
         return tf.contrib.layers.layer_norm(tf.add(left, right))
 
     def runAttention(self, embeddings):
-        # Q,K,V (batch-size, sequence-length, assignments, attention-heads, hidden-dimension)
-        Q = embeddings[:,:,:,0,:,:]
-        K = embeddings[:,:,:,1,:,:]
-        V = embeddings[:,:,:,2,:,:]
+        # Q,K,V (batch-size, sequence-length, 2, assignments, attention-heads, hidden-dimension)
+        Q = embeddings[:,:,:,:,0,:,:]
+        K = embeddings[:,:,:,:,1,:,:]
+        V = embeddings[:,:,:,:,2,:,:]
 
         readOn = tf.matmul(Q, K, transpose_b=True)
 
@@ -892,6 +880,9 @@ class ClassTransformerModel:
 
     def getNumberOfAttentionHeads(self):
         return int(self.config["model"]["number-of-attention-heads"])
+
+    def getNumberOfDocumentClasses(self):
+        return int(self.config["model"]["number-of-document-classes"])
 
     def getWordFrequencyPowerLawExponent(self):
         return float(self.config["model"]["word-frequency-power-law-exponent"])

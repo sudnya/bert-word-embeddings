@@ -11,6 +11,7 @@
         "number-of-layers" : 2,
         "number-of-attention-heads" : 4,
         "steps-per-epoch" : 5000,
+        "number-of-document-classes" : 1024,
         "softmax-sample-count": 512,
         "learning-rate": 0.0005,
         "word-frequency-power-law-exponent" : 0.00001,

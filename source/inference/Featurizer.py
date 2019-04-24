@@ -16,7 +16,7 @@ class Featurizer:
         self.model = self.loadModel()
 
     def featurizeOneBatch(self):
-        inputs, labels = self.validationDataset.next()
+        inputs, labels, _, _ = self.validationDataset.next()
 
         logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
