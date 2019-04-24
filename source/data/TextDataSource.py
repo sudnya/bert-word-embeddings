@@ -65,10 +65,10 @@ class TextDataSource:
         return sorted(allFiles)
 
     def getSeed(self):
-        if not "size" in self.config["adaptor"]["cache"]:
+        if not "seed" in self.sourceConfig:
             return 125
 
-        return int(self.config["adaptor"]["cache"]["seed"])
+        return int(self.sourceConfig["seed"])
 
 
 

@@ -182,6 +182,7 @@ def loadConfig(arguments):
         config["adaptor"] = {}
 
     if arguments["make_vocab"]:
+        config["adaptor"] = {}
         if not "unlimited-vocab-tokenizer" in config["adaptor"]:
             config["adaptor"]["unlimited-vocab-tokenizer"] = {}
     elif arguments["make_test_set"]:

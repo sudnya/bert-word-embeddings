@@ -6,6 +6,7 @@ import json
 import shutil
 import time
 import math
+import humanize
 import tensorflow as tf
 
 from models.Vocab import Vocab
@@ -87,16 +88,19 @@ class ClassTransformerModel:
                     predictions[b,l,requestedPredictions[b,l,:]]
         return outputPredictions
 
-    def getFeatures(self, inputs):
+    def getFeatures(self, inputs, secondInputs):
         with self.graph.as_default():
             self.getOrLoadModel()
 
-        inputs = numpy.array(inputs)
+        inputs = numpy.expand_dims(numpy.array(inputs), axis=2)
+        secondInputs = numpy.expand_dims(numpy.array(secondInputs), axis=2)
+        inputs = numpy.concatenate([inputs, secondInputs], axis=2)
 
+        # (batch, sequence, 2, embedding-size)
         predictions = self.session.run(self.features,
                 feed_dict={self.inputTokens : inputs})
 
-        return predictions
+        return predictions[:, :, 0, :]
 
 
     def getOrLoadModel(self):
@@ -104,6 +108,9 @@ class ClassTransformerModel:
 
         If specified, create a new model else load an already existing model.
         """
+        if self.isLoaded:
+            return
+
         self.vocab = Vocab(self.config)
 
         shouldCreate = not os.path.exists(
@@ -114,10 +121,24 @@ class ClassTransformerModel:
         else:
             self.loadModel()
 
+        self.logModel()
+
+    def logModel(self):
+        totalParameters = 0
+        for variable in tf.trainable_variables():
+            shape = variable.get_shape()
+            variableParameters = 1
+            for dim in shape:
+                variableParameters *= dim.value
+            totalParameters += variableParameters
+            logger.debug("Variable '" + variable.name + "' " +
+                str(humanize.naturalsize(variableParameters)) + " (params) " +
+                str(shape) + " (dims)")
+
+        logger.debug("Total #params '" + str(humanize.naturalsize(totalParameters)) + "' ")
+
     def loadModel(self):
         """Loads an already existing model from the specified path """
-        if self.isLoaded:
-            return
 
         self.checkpointer.load()
 

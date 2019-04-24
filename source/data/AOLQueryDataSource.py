@@ -43,14 +43,13 @@ class AOLQueryDataSource:
         while len(nextLine) > 0:
             elements = nextLine.split('\t')
             if isInt(elements[0]):
-                return elements[1], int(elements[0])
+                return elements[1] + "\n", int(elements[0]) % self.getMaximumId()
             nextLine = self.readline()
 
         return "", -1
 
     def readline(self):
         return self.file.readline()
-
 
     def getPath(self):
         return self.sourceConfig["path"]
@@ -60,15 +59,22 @@ class AOLQueryDataSource:
 
     def reset(self):
         assert len(self.files) > 0, "No files found in " + self.getPath()
-        self.file = open(self.files[0], encoding='ISO-8859-1')
-        self.index = 1
+        self.indices = list(range(len(self.files)))
+        self.index = 0
+        self.random = numpy.random.RandomState(seed=self.getSeed())
+
+        self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
 
         self.line = ""
         self.linePosition = 0
-        self.random = numpy.random.RandomState(seed=self.getSeed())
 
     def shuffleDocuments(self):
-        self.random.shuffle(self.files)
+        self.random.shuffle(self.indices)
+        self.index = 0
+        self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
+
+        self.line = ""
+        self.linePosition = 0
 
     def clone(self):
         return AOLQueryDataSource(self.config, self.sourceConfig)
@@ -90,12 +96,19 @@ class AOLQueryDataSource:
         return sorted(allFiles)
 
     def getSeed(self):
-        if not "size" in self.config["adaptor"]["cache"]:
+        if not "seed" in self.sourceConfig:
             return 124
 
-        return int(self.config["adaptor"]["cache"]["seed"])
+        return int(self.sourceConfig["seed"])
 
+    def getMaximumId(self):
+        if not "maximum-document-id" in self.sourceConfig:
+            return 1024
 
+        return int(self.sourceConfig["maximum-document-id"])
+
+    def getIndex(self):
+        return self.indices[self.index]
 
 def isInt(s):
     try:

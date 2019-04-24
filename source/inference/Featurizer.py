@@ -16,11 +16,11 @@ class Featurizer:
         self.model = self.loadModel()
 
     def featurizeOneBatch(self):
-        inputs, labels, _, _ = self.validationDataset.next()
+        inputs, labels, secondInputs, _ = self.validationDataset.next()
 
         logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
-        return inputs, labels, self.model.getFeatures(inputs)
+        return inputs, labels, self.model.getFeatures(inputs, secondInputs)
 
     def getIterations(self):
         if "iterations" in self.config["predictor"]:
