@@ -47,22 +47,31 @@ class TokenizerAdaptor:
 
 
     def tryMatchBestToken(self):
-        # try to match the biggest
-        for i in range(0, len(self.buffer)):
-            end = len(self.buffer) - i
-            possibleToken = "".join(self.buffer[:end])
-            #logger.debug("trying string: '" + possibleToken + "'")
+        possibleWord = self.buffer[0]
+        documentId = self.idBuffer[0]
 
-            if self.vocab.contains(possibleToken):
-                documentId = self.idBuffer[0]
-                del self.buffer[:end]
-                del self.idBuffer[:end]
-                token = self.vocab.getToken(possibleToken)
-                logger.debug("string: '" + possibleToken + "' -> " + str(token) + " (" +
-                    str(documentId) + ")")
-                return token, documentId
+        match = None
 
-        return None
+
+        for i in range(1, len(self.buffer)):
+            possibleWord += self.buffer[i]
+
+            if self.vocab.isPrefix(possibleWord):
+                continue
+
+            if not self.vocab.contains(possibleWord) and len(possibleWord) > 1:
+                match = possibleWord[:-1]
+                del self.buffer[:i]
+                del self.idBuffer[:i]
+                break
+
+        if match is None:
+            return None
+
+        token = self.vocab.getToken(match)
+        logger.debug("string: '" + match + "' -> " + str(token) + " (" + str(documentId) + ")")
+
+        return token, documentId
 
     def hasUnicode(self):
         for character in self.buffer:

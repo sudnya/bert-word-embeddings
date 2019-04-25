@@ -1,10 +1,13 @@
 
+import pygtrie
+
 class Vocab:
     def __init__(self, config):
         self.config = config
-        self.vocab, self.tokens, self.maxTokenSize = self.loadVocab()
+        self.vocab, self.vocabTrie, self.tokens, self.maxTokenSize = self.loadVocab()
 
     def loadVocab(self):
+        vocabTrie = pygtrie.CharTrie()
         vocab = {}
         tokens = {}
         maxTokenSize = 0
@@ -15,27 +18,34 @@ class Vocab:
                 else:
                     string = line
                 if not string in vocab:
-                    token = len(vocab) + Vocab.getVocabOffset()
+                    token = len(tokens) + Vocab.getVocabOffset()
                     vocab[string] = token
+                    vocabTrie[string] = token
                     tokens[token] = string
                     maxTokenSize = max(maxTokenSize, len(string))
 
-        return vocab, tokens, maxTokenSize
+        return vocab, vocabTrie, tokens, maxTokenSize
 
     def getVocabPath(self):
         return self.config["model"]["vocab"]
 
     def save(self, path):
         shutil.copy(self.getVocabPath(), path)
+        with open(self.getVocabPath(), "w") as vocabFile:
+            for i in len(self.tokens):
+                vocabFile.write(self.tokens[i + Vocab.getVocabOffset()] + "\n")
 
     def contains(self, token):
         return token in self.vocab
+
+    def isPrefix(self, prefix):
+        return self.vocabTrie.has_subtrie(prefix)
 
     def getMaximumTokenSize(self):
         return self.maxTokenSize
 
     def getSize(self):
-        return len(self.vocab) + Vocab.getVocabOffset()
+        return len(self.tokens) + Vocab.getVocabOffset()
 
     def getToken(self, string):
         #print(self.vocab)

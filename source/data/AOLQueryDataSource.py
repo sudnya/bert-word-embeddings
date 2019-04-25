@@ -32,8 +32,8 @@ class AOLQueryDataSource:
             if self.index >= len(self.files):
                 break
 
-            self.file = open(self.files[self.index], encoding='ISO-8859-1')
             self.index += 1
+            self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
 
             self.line, self.userId = self.parseLine()
 
