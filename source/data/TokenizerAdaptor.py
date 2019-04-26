@@ -65,6 +65,11 @@ class TokenizerAdaptor:
                 del self.idBuffer[:i]
                 break
 
+        if match is None and self.vocab.contains(possibleWord):
+            match = possibleWord
+            del self.buffer[:]
+            del self.idBuffer[:]
+
         if match is None:
             return None
 
