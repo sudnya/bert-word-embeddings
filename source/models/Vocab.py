@@ -7,7 +7,7 @@ class Vocab:
         self.vocab, self.vocabTrie, self.tokens, self.maxTokenSize = self.loadVocab()
 
     def loadVocab(self):
-        vocabTrie = pygtrie.CharTrie()
+        vocabTrie = None
         vocab = {}
         tokens = {}
         maxTokenSize = 0
@@ -20,7 +20,6 @@ class Vocab:
                 if not string in vocab:
                     token = len(tokens) + Vocab.getVocabOffset()
                     vocab[string] = token
-                    vocabTrie[string] = token
                     tokens[token] = string
                     maxTokenSize = max(maxTokenSize, len(string))
 
@@ -39,7 +38,16 @@ class Vocab:
         return token in self.vocab
 
     def isPrefix(self, prefix):
+        if self.vocabTrie is None:
+            self.makeTrie()
+
         return self.vocabTrie.has_subtrie(prefix)
+
+    def makeTrie(self):
+        self.vocabTrie = pygtrie.CharTrie()
+
+        for string, token in self.vocab.items():
+            self.vocabTrie[string] = token
 
     def getMaximumTokenSize(self):
         return self.maxTokenSize

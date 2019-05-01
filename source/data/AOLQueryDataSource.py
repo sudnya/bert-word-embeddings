@@ -29,10 +29,11 @@ class AOLQueryDataSource:
         self.line, self.userId = self.parseLine()
 
         while len(self.line) == 0:
+            self.index += 1
+
             if self.index >= len(self.files):
                 break
 
-            self.index += 1
             self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
 
             self.line, self.userId = self.parseLine()
@@ -61,12 +62,13 @@ class AOLQueryDataSource:
         assert len(self.files) > 0, "No files found in " + self.getPath()
         self.indices = list(range(len(self.files)))
         self.index = 0
-        self.random = numpy.random.RandomState(seed=self.getSeed())
 
         self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
 
         self.line = ""
         self.linePosition = 0
+
+        self.random = numpy.random.RandomState(seed=self.getSeed())
 
     def shuffleDocuments(self):
         self.random.shuffle(self.indices)

@@ -6,6 +6,7 @@ from sklearn.decomposition import IncrementalPCA as IncrementalPCA
 
 import os
 import numpy
+import statistics
 
 import logging
 
@@ -57,8 +58,8 @@ class Clusterer:
 
         # group into clusters
         # create a histogram of word frequencies per cluster
-        clusterMap = { i : [] for i in range(self.numberOfClusters) }
         clusterHistogram = { i : {} for i in range(self.numberOfClusters) }
+        documentMap = {}
 
         logger.info("Clustering data...")
 
@@ -78,29 +79,29 @@ class Clusterer:
                 (batchSize, chunkLength))
 
             for batch in range(batchSize):
-                chunk = tuple([vocab.getTokenString(token) for token in labels[batch, :]])
+                documentId = labels[batch, 0]
 
-                for wordIndex in range(chunkLength):
+                if not documentId in documentMap:
+                    documentMap[documentId] = []
+
+                clusterIds = []
+
+                for wordIndex in range(1, chunkLength):
 
                     word = vocab.getTokenString(labels[batch, wordIndex])
                     cluster = clusters[batch, wordIndex]
 
-                    clusterMap[cluster].append((word, chunk))
+                    clusterIds.append(cluster)
 
                     if not labels[batch, wordIndex] in clusterHistogram[cluster]:
                         clusterHistogram[cluster][labels[batch, wordIndex]] = 0
 
                     clusterHistogram[cluster][labels[batch, wordIndex]] += 1
 
+                documentMap[documentId].extend(clusterIds)
+
         if not os.path.exists(self.outputDirectory):
             os.makedirs(self.outputDirectory)
-
-        # write clusters
-        with open(self.getOutputFileName(), "w") as log:
-            for clusterId, words in clusterMap.items():
-                log.write("Cluster, " + str(clusterId) + "\n")
-                for word, chunk in words:
-                    log.write("    '" + word + "' " + str(list(chunk)) + "\n")
 
         # write histograms
         with open(self.getOutputHistogramFileName(), "w") as log:
@@ -110,23 +111,36 @@ class Clusterer:
                     log.write("    '" + vocab.getTokenString(wordIndex) +
                               "' " + str(count) + "\n")
 
-        # write clustered text
-        for clusterId, words in clusterMap.items():
-            uniqueChunks = set()
+        # write document clusters
+        for documentId, clusters in documentMap.items():
 
-            with open(self.getOutputClusterFileName(clusterId), "w") as log:
-                for word, chunk in words:
-                    if not chunk in uniqueChunks:
-                        uniqueChunks.add(chunk)
-                        subsequenceLength = (len(chunk) - 3) // 2
-                        log.write("".join(chunk[1:subsequenceLength+1]) + "\n")
+            histogram = {}
 
+            for cluster in clusters:
+                if not cluster in histogram:
+                    histogram[cluster] = 0
+
+                histogram[cluster] += 1
+
+            with open(self.getOutputDocumentClusterFileName(documentId), "w") as log:
+
+                for cluster, count in sorted(histogram.items(), key=lambda x:x[1], reverse=True):
+
+                    words = clusterHistogram[cluster]
+                    topWord = vocab.getTokenString(sorted(words.items(), key=lambda x : x[1], reverse=True)[0][0])
+                    log.write("Cluster, " + str(cluster) + ", " + topWord + ", " + str(count) + "\n")
+
+    def vote(self, array):
+        return statistics.mode(array)
 
     def getOutputFileName(self):
         return os.path.join(self.outputDirectory, "clusters.txt")
 
     def getOutputClusterFileName(self, cluster):
         return os.path.join(self.outputDirectory, "id-" + str(cluster) + "-cluster.txt")
+
+    def getOutputDocumentClusterFileName(self, documentId):
+        return os.path.join(self.outputDirectory, "document-id-" + str(documentId) + "-histogram.txt")
 
     def getOutputHistogramFileName(self):
         return os.path.join(self.outputDirectory, "histogram.txt")
@@ -137,7 +151,7 @@ class Clusterer:
         elif "validationStepsPerEpoch" in self.config["model"]:
             count = int(self.config["model"]["validationStepsPerEpoch"])
         else:
-            count =int(self.config["model"]["validation-steps-per-epoch"])
+            count = int(self.config["model"]["validation-steps-per-epoch"])
 
         self.validationDataset.setMaximumSize(count)
 
