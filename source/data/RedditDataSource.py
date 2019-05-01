@@ -55,7 +55,7 @@ class RedditDataSource:
         if not subreddit in self.subreddits:
             self.subreddits[subreddit] = len(self.subreddits)
 
-        return self.subreddits[subreddit]
+        return self.subreddits[subreddit] % self.getMaximumId()
 
     def readline(self):
         return self.file.readline()
@@ -109,6 +109,12 @@ class RedditDataSource:
             return 126
 
         return int(self.config["adaptor"]["cache"]["seed"])
+
+    def getMaximumId(self):
+        if not "maximum-document-id" in self.sourceConfig:
+            return 1024
+
+        return int(self.sourceConfig["maximum-document-id"])
 
 
 
