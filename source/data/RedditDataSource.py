@@ -105,10 +105,10 @@ class RedditDataSource:
         return sorted(allFiles)
 
     def getSeed(self):
-        if not "size" in self.config["adaptor"]["cache"]:
-            return 126
+        if not "seed" in self.sourceConfig:
+            return 124
 
-        return int(self.config["adaptor"]["cache"]["seed"])
+        return int(self.sourceConfig["seed"])
 
     def getMaximumId(self):
         if not "maximum-document-id" in self.sourceConfig:
