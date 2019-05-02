@@ -351,7 +351,10 @@ class ClassTransformerModel:
         for step in range(self.getStepsPerEpoch()):
             generatorStart = time.time()
 
-            inputs, labels, secondInputs, secondLabels = self.trainingDataSource.next()
+            try:
+                inputs, labels, secondInputs, secondLabels = self.trainingDataSource.next()
+            except:
+                break
 
             generatorEnd = time.time()
 

@@ -9,9 +9,18 @@ class DataSources:
         self.config = config
 
     def next(self):
-        item = self.sources[self.currentSource].next()
+        item = None
 
-        self.currentSource = (self.currentSource + 1) % len(self.sources)
+        for i in range(len(self.sources)):
+            try:
+                item = self.sources[self.currentSource].next()
+                self.currentSource = (self.currentSource + 1) % len(self.sources)
+                break
+            except:
+                self.currentSource = (self.currentSource + 1) % len(self.sources)
+
+        if item is None:
+            raise StopIteration()
 
         return item
 
