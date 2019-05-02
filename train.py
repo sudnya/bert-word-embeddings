@@ -95,6 +95,8 @@ def main():
         help = "The number of tokens to include in the vocab.")
     parser.add_argument("--vocab-path", default="",
         help = "Set the vocab path explicitly.")
+    parser.add_argument("--data-source-type", default="TextDataSource",
+        help = "The type of text data source to use (default TextDataSource).")
     parser.add_argument("--make-vocab", default=False, action="store_true",
         help = "Make a vocab file for the validation set.")
     parser.add_argument("--make-clusters", default=False, action="store_true",

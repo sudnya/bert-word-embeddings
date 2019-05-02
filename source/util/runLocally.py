@@ -159,7 +159,7 @@ def loadConfig(arguments):
         config["model"]["directory"] = modelPath
 
     if len(arguments["test_set"]) > 0:
-        config["validationDataSources"] = [{ "type" : "TextDataSource",
+        config["validationDataSources"] = [{ "type" : arguments["data_source_type"],
                                              "path" : arguments["test_set"] }]
 
     if len(arguments["vocab_path"]) > 0:
