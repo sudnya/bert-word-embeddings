@@ -33,7 +33,10 @@ class UnlimitedVocabTokenizerAdaptor:
         tokenBuffer = []
 
         while True:
-            nextCharacter, documentId = self.source.next()
+            nextCharacter, documentId = nextResult
+
+            if len(nextCharacter) == 0:
+                break
 
             if isSingleCharacterToken(nextCharacter):
                 self.addToken(tokenBuffer)
@@ -50,6 +53,9 @@ class UnlimitedVocabTokenizerAdaptor:
         return self.pop()
 
     def pop(self):
+        if len(self.tokens) == 0:
+            return None
+
         nextToken = self.tokens[0]
 
         del self.tokens[0]
