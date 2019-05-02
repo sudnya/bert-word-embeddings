@@ -15,7 +15,7 @@ class RedditDataSource:
         self.fillLineBuffer()
 
         if len(self.line) == 0:
-            return ""
+            return "", 0
 
         nextCharacter = self.line[self.linePosition]
 
