@@ -2,14 +2,14 @@
     "model" :
     {
         "type" : "ClassTransformerModel",
-        "vocab" : "/data/1tb-ssd/language/vocabs/vocab-guttenberg-256k.txt",
+        "vocab" : "/data/1tb-ssd/language/vocabs/vocab-reddit-256k.txt",
         "epochs" : 20,
         "embedding-size" : 128,
-        "assignment-count" : 2,
+        "assignment-count" : 1,
         "number-of-classes" : 16384,
         "number-of-direct-classes" : 12288,
         "number-of-layers" : 4,
-        "number-of-attention-heads" : 8,
+        "number-of-attention-heads" : 4,
         "steps-per-epoch" : 50000,
         "number-of-document-classes" : 1024,
         "softmax-sample-count": 512,
@@ -34,16 +34,14 @@
     [
         {
             "type" : "TextDataSource",
-            "path" : "/data/1tb-ssd/language/training/guttenberg-splits"
+            "path" : "/data/1tb-ssd/language/training/reddit"
         }
     ],
     "validationDataSources" :
     [
         {
             "type" : "TextDataSource",
-            "path" : "/data/1tb-ssd/language/validation/guttenberg-splits"
+            "path" : "/data/1tb-ssd/language/validation/reddit"
         }
     ]
-
-
 }

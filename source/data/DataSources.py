@@ -2,12 +2,15 @@
 
 from data.AdaptorFactory import AdaptorFactory
 
+from profilehooks import profile
+
 class DataSources:
     def __init__(self, config):
         self.currentSource = 0
         self.sources = []
         self.config = config
 
+#    @profile
     def next(self):
         item = self.sources[self.currentSource].next()
 
