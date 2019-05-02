@@ -19,7 +19,7 @@ class DataSources:
                 item = self.sources[self.currentSource].next()
                 self.currentSource = (self.currentSource + 1) % len(self.sources)
                 break
-            except:
+            except StopIteration:
                 self.currentSource = (self.currentSource + 1) % len(self.sources)
 
         if item is None:
