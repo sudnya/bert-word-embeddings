@@ -1,6 +1,7 @@
 
 from data.TextDataSource import TextDataSource
 from data.AOLQueryDataSource import AOLQueryDataSource
+from data.RedditDataSource import RedditDataSource
 
 class DataSourceFactory:
     def __init__(self, config):
@@ -13,7 +14,10 @@ class DataSourceFactory:
         if sourceDescription["type"] == "AOLQueryDataSource":
             return AOLQueryDataSource(self.config, sourceDescription)
 
-        raise RuntimeError("Unknown data source type '" + self.config["type"] + "'")
+        if sourceDescription["type"] == "RedditDataSource":
+            return RedditDataSource(self.config, sourceDescription)
+
+        raise RuntimeError("Unknown data source type '" + sourceDescription["type"] + "'")
 
 
 
