@@ -33,14 +33,14 @@
     "trainingDataSources" :
     [
         {
-            "type" : "TextDataSource",
+            "type" : "RedditDataSource",
             "path" : "/data/1tb-ssd/language/training/reddit"
         }
     ],
     "validationDataSources" :
     [
         {
-            "type" : "TextDataSource",
+            "type" : "RedditDataSource",
             "path" : "/data/1tb-ssd/language/validation/reddit"
         }
     ]

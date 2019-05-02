@@ -1,6 +1,7 @@
 
 
 import numpy
+import json
 
 class RedditDataSource:
     def __init__(self, config, sourceConfig):
@@ -45,8 +46,9 @@ class RedditDataSource:
         while len(nextLine) > 0:
             try:
                 message = json.loads(nextLine)
-                return message["body"], getSubredditId(message["subreddit"])
-            except:
+                return message["body"], self.getSubRedditId(message["subreddit"])
+            except Exception as e:
+                print(e)
                 nextLine = self.readline()
 
         return "", -1
