@@ -47,11 +47,13 @@ class TokenizerAdaptor:
 
 
     def tryMatchBestToken(self):
+        if len(self.buffer) == 0:
+            return None
+
         possibleWord = self.buffer[0]
         documentId = self.idBuffer[0]
 
         match = None
-
 
         for i in range(1, len(self.buffer)):
             possibleWord += self.buffer[i]
