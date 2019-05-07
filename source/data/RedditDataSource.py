@@ -48,7 +48,6 @@ class RedditDataSource:
                 message = json.loads(nextLine)
                 return message["body"], self.getSubRedditId(message["subreddit"])
             except Exception as e:
-                print(e)
                 nextLine = self.readline()
 
         return "", -1

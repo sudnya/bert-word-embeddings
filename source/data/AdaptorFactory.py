@@ -8,6 +8,7 @@ from data.CacheAdaptor import CacheAdaptor
 from data.ChunkAdaptor import ChunkAdaptor
 from data.BatchAdaptor import BatchAdaptor
 from data.LabelAdaptor import LabelAdaptor
+from data.PassThroughLabelAdaptor import PassThroughLabelAdaptor
 
 import logging
 
@@ -39,8 +40,12 @@ class AdaptorFactory:
             source = CacheAdaptor(self.config, source)
 
         if self.hasLabels():
-            logger.debug(" labeler")
-            source = LabelAdaptor(self.config, source)
+            if self.config["adaptor"]["labels"]["type"] == "PassThroughLabelAdaptor":
+                logger.debug(" pass through labeler")
+                source = PassThroughLabelAdaptor(self.config, source)
+            else:
+                logger.debug(" labeler")
+                source = LabelAdaptor(self.config, source)
 
         if self.usesBatches():
             logger.debug(" batcher")
