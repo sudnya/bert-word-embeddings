@@ -15,7 +15,7 @@ class RedditDataSource:
         self.fillLineBuffer()
 
         if len(self.line) == 0:
-            return "", 0
+            return "", -1
 
         nextCharacter = self.line[self.linePosition]
 
@@ -46,6 +46,9 @@ class RedditDataSource:
         while len(nextLine) > 0:
             try:
                 message = json.loads(nextLine)
+                if len(message["body"]) == 0:
+                    nextLine = self.readline()
+                    continue
                 return message["body"], self.getSubRedditId(message["subreddit"])
             except Exception as e:
                 print(e)

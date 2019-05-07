@@ -33,7 +33,7 @@ class UnlimitedVocabTokenizerAdaptor:
         tokenBuffer = []
 
         while True:
-            nextCharacter, documentId = nextResult
+            nextCharacter, documentId = self.source.next()
 
             if len(nextCharacter) == 0:
                 break
