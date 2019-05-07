@@ -195,9 +195,9 @@ def loadConfig(arguments):
                 config["adaptor"]["tokenizer"] = {}
 
     else:
-        if (not "tokenizer" in config["adaptor"] and
-            not "unk-tokenizer" in config["adaptor"] and
-            not "unlimited-vocab-tokenizer" in config["adaptor"]):
+        if ((not "tokenizer" in config["adaptor"]) and
+            (not "unk-tokenizer" in config["adaptor"]) and
+            (not "unlimited-vocab-tokenizer" in config["adaptor"])):
             if arguments["use_unk_tokenizer"]:
                 config["adaptor"]["unk-tokenizer"] = {}
             else:
@@ -215,7 +215,13 @@ def loadConfig(arguments):
         if not "cache" in config["adaptor"]:
             config["adaptor"]["cache"] = { }
 
+    if isInference(arguments):
+        config["adaptor"]["labels"]["type"] = "PassThroughLabelAdaptor"
+
     return config
+
+def isInference(arguments):
+    return arguments["predict"] or arguments["make_clusters"]
 
 def overrideConfig(config, arguments):
     for override in arguments["override_config"]:

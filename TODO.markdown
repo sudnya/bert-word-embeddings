@@ -17,6 +17,7 @@ Goal 2: Use inverse reinforcement learning to discover rewards from different da
 Goal 3: Find a big deep net that can fit TBs of text data and is fast enough to train on 1 V100.
 
     TODO: validate that a 10M parameter transformer can do it
+        Done: it can run on 50GB, ideally more on a TURING card
 
 
 Goal 4: Curate a big dataset by training a crawler to find data on the internet that helps interesting
