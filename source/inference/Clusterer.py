@@ -107,9 +107,9 @@ class Clusterer:
 
         # write histograms
         with open(self.getOutputHistogramFileName(), "w") as log:
-            for clusterId, count in sorted(clusterWins, key=lambda x : x[1], reverse=True):
-                words = clusterHistograms[clusterId]
-                log.write("Cluster, " + str(clusterId) + "\n")
+            for clusterId, clusterCount in sorted(clusterWins.items(), key=lambda x : x[1], reverse=True):
+                words = clusterHistogram[clusterId]
+                log.write("Cluster, " + str(clusterId) + " (" + str(clusterCount) + ")\n")
                 for wordIndex, count in sorted(words.items(), key=lambda x : x[1], reverse=True):
                     log.write("    '" + vocab.getTokenString(wordIndex) +
                           "' " + str(count) + "\n")

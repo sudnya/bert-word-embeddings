@@ -5,14 +5,14 @@
         "vocab" : "/data/1tb-ssd/language/vocabs/vocab-reddit-256k.txt",
         "epochs" : 20,
         "embedding-size" : 128,
-        "assignment-count" : 2,
+        "assignment-count" : 4,
         "number-of-classes" : 16384,
         "number-of-direct-classes" : 12288,
         "number-of-layers" : 4,
         "number-of-attention-heads" : 4,
-        "steps-per-epoch" : 50000,
+        "steps-per-epoch" : 100000,
         "number-of-document-classes" : 1024,
-        "softmax-sample-count": 512,
+        "softmax-sample-count": 2048,
         "learning-rate": 0.0005,
         "word-frequency-power-law-exponent" : 0.00001,
         "gradient-clipping-factor": 10.0,
@@ -27,7 +27,7 @@
         },
         "batching" :
         {
-            "size" : 64
+            "size" : 32
         }
     },
     "trainingDataSources" :
