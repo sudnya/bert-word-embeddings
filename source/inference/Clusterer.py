@@ -59,6 +59,7 @@ class Clusterer:
         # group into clusters
         # create a histogram of word frequencies per cluster
         clusterHistogram = { i : {} for i in range(self.numberOfClusters) }
+        clusterWins = { i : 0 for i in range(self.numberOfClusters) }
         documentMap = {}
 
         logger.info("Clustering data...")
@@ -97,6 +98,7 @@ class Clusterer:
                         clusterHistogram[cluster][labels[batch, wordIndex]] = 0
 
                     clusterHistogram[cluster][labels[batch, wordIndex]] += 1
+                    clusterWins[cluster] += 1
 
                 documentMap[documentId].extend(clusterIds)
 
@@ -105,11 +107,12 @@ class Clusterer:
 
         # write histograms
         with open(self.getOutputHistogramFileName(), "w") as log:
-            for clusterId, words in clusterHistogram.items():
+            for clusterId, count in sorted(clusterWins, key=lambda x : x[1], reverse=True):
+                words = clusterHistograms[clusterId]
                 log.write("Cluster, " + str(clusterId) + "\n")
                 for wordIndex, count in sorted(words.items(), key=lambda x : x[1], reverse=True):
                     log.write("    '" + vocab.getTokenString(wordIndex) +
-                              "' " + str(count) + "\n")
+                          "' " + str(count) + "\n")
 
         # write document clusters
         for documentId, clusters in documentMap.items():
