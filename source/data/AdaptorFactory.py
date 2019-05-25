@@ -40,10 +40,13 @@ class AdaptorFactory:
             source = CacheAdaptor(self.config, source)
 
         if self.hasLabels():
-            if self.config["adaptor"]["labels"]["type"] == "PassThroughLabelAdaptor":
-                logger.debug(" pass through labeler")
-                source = PassThroughLabelAdaptor(self.config, source)
-            else:
+            labeler = False
+            if "adaptor" in self.config and "labels" in self.config["adaptor"] and "type" in self.config["adaptor"]["labels"]:
+                if self.config["adaptor"]["labels"]["type"] == "PassThroughLabelAdaptor":
+                    logger.debug(" pass through labeler")
+                    source = PassThroughLabelAdaptor(self.config, source)
+                    labeler = True
+            if not labeler:
                 logger.debug(" labeler")
                 source = LabelAdaptor(self.config, source)
 

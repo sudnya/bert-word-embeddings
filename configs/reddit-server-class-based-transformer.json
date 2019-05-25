@@ -5,7 +5,7 @@
         "vocab" : "/data/1tb-ssd/language/vocabs/vocab-reddit-256k.txt",
         "epochs" : 20,
         "embedding-size" : 128,
-        "assignment-count" : 1,
+        "assignment-count" : 2,
         "number-of-classes" : 16384,
         "number-of-direct-classes" : 12288,
         "number-of-layers" : 4,
