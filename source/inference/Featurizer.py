@@ -3,6 +3,7 @@ from models.ModelFactory import ModelFactory
 from models.Vocab import Vocab
 
 import numpy
+import time
 
 import logging
 
@@ -15,12 +16,21 @@ class Featurizer:
 
         self.model = self.loadModel()
 
-    def featurizeOneBatch(self):
+    def featurizeOneBatch(self, *, reportTime=False):
+        dataStart = time.time()
         inputs, labels, secondInputs, _ = self.validationDataset.next()
+        dataEnd = time.time()
 
         logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
-        return inputs, labels, self.model.getFeatures(inputs, secondInputs)
+        featureStart = time.time()
+        features = self.model.getFeatures(inputs, secondInputs)
+        featureEnd = time.time()
+
+        if reportTime:
+            return inputs, labels, features, dataEnd - dataStart, featureEnd - featureStart
+        else:
+            return inputs, labels, features
 
     def getIterations(self):
         if "iterations" in self.config["predictor"]:

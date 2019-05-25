@@ -10,6 +10,8 @@ import statistics
 
 import logging
 
+from profilehooks import profile
+
 logger = logging.getLogger(__name__)
 
 class Clusterer:
@@ -19,6 +21,7 @@ class Clusterer:
         self.numberOfClusters = numberOfClusters
         self.outputDirectory = outputDirectory
 
+    @profile
     def groupDataIntoClusters(self):
 
         kmeans = MiniBatchKMeans(n_clusters=self.numberOfClusters)
@@ -46,8 +49,11 @@ class Clusterer:
         # fit the kmeans model
         for iteration in range(self.getIterations()):
             if iteration % 10 == 0:
-                logger.info(" " + str(iteration) + " / " + str(self.getIterations()))
-            inputs, labels, embeddings = featurizer.featurizeOneBatch()
+                inputs, labels, embeddings, dataTime, modelTime = featurizer.featurizeOneBatch(reportTime=True)
+                logger.info(" " + str(iteration) + " / " + str(self.getIterations()) +
+                    " data load time: " + str(dataTime) + " model eval time: " + str(modelTime))
+            else:
+                inputs, labels, embeddings = featurizer.featurizeOneBatch()
 
             if self.usePCA():
                 embeddings = pca.transform(numpy.reshape(embeddings, (-1, embeddings.shape[-1])))
@@ -66,8 +72,12 @@ class Clusterer:
 
         for iteration in range(self.getIterations()):
             if iteration % 10 == 0:
-                logger.info(" " + str(iteration) + " / " + str(self.getIterations()))
-            inputs, labels, embeddings = featurizer.featurizeOneBatch()
+                inputs, labels, embeddings, dataTime, modelTime = featurizer.featurizeOneBatch(reportTime=True)
+                logger.info(" " + str(iteration) + " / " + str(self.getIterations()) +
+                    " data load time: " + str(dataTime) + " model eval time: " + str(modelTime))
+            else:
+                inputs, labels, embeddings = featurizer.featurizeOneBatch()
+
 
             chunkLength = embeddings.shape[1]
             batchSize = embeddings.shape[0]
