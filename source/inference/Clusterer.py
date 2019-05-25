@@ -21,7 +21,7 @@ class Clusterer:
         self.numberOfClusters = numberOfClusters
         self.outputDirectory = outputDirectory
 
-    @profile
+    #@profile
     def groupDataIntoClusters(self):
 
         kmeans = MiniBatchKMeans(n_clusters=self.numberOfClusters)
