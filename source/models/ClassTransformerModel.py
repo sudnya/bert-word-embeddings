@@ -395,7 +395,9 @@ class ClassTransformerModel:
             self.gradientNorm, self.mergedSummary, self.optimizerStep],
             feed_dict={self.inputTokens : inputs, self.labels : labels })
 
-        self.trainingSummaryWriter.add_summary(summaries, step + epoch * self.getStepsPerEpoch())
+        if step % self.getStepsPerTensorboardLog():
+            self.trainingSummaryWriter.add_summary(summaries,
+                step + epoch * self.getStepsPerEpoch())
         return trainingLoss, gradNorm
 
     def runOnValidationDataset(self, epoch):
@@ -925,6 +927,9 @@ class ClassTransformerModel:
 
     def getStepsPerEpoch(self):
         return int(self.config["model"]["steps-per-epoch"])
+
+    def getStepsPerTensorboardLog(self):
+        return int(self.config["model"]["steps-per-tensorboard-log"])
 
     def getValidationStepsPerEpoch(self):
         return int(self.config["model"]["validation-steps-per-epoch"])
