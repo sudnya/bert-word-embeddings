@@ -8,6 +8,7 @@ import shutil
 from models.ModelFactory import ModelFactory
 from models.Vocab import Vocab
 from inference.Predictor import Predictor
+from inference.Clusterer import Clusterer
 from data.DataSources import DataSources
 from data.DataSourceFactory import DataSourceFactory
 from mpi.mpi import mpi
@@ -15,6 +16,8 @@ from util.vocab import saveVocab
 
 import tensorflow as tf
 from tensorflow.python.client import device_lib
+
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 def getAvailableGpus():
     local_device_protos = device_lib.list_local_devices()
@@ -49,6 +52,9 @@ def getModel(config, trainingData, validationData):
 
 def getPredictor(config, validationData):
     return Predictor(config, validationData)
+
+def getClusterer(config, validationData, directory, clusterCount):
+    return Clusterer(config, validationData, directory, clusterCount)
 
 def saveData(validationData, tokenCount, directory, vocab):
     if not os.path.exists(directory):
@@ -127,13 +133,30 @@ def makeExperiment(config):
 
 def loadConfig(arguments):
     if arguments["model_path"] != "":
-        arguments["config_file"] = os.path.join(arguments["model_path"], 'config.json')
+        checkpointConfigPath = os.path.join(arguments["model_path"], "checkpoint", "config.json")
+        bestConfigPath = os.path.join(arguments["model_path"], "best", "config.json")
+        if os.path.exists(checkpointConfigPath):
+            arguments["config_file"] = checkpointConfigPath
+            vocabPath = os.path.join(arguments["model_path"], "checkpoint", "vocab.txt")
+            modelPath = os.path.join(arguments["model_path"], "checkpoint")
+        elif os.path.exists(bestConfigPath):
+            arguments["config_file"] = bestConfigPath
+            vocabPath = os.path.join(arguments["model_path"], "best", "vocab.txt")
+            modelPath = os.path.join(arguments["model_path"], "best")
+        else:
+            arguments["config_file"] = os.path.join(arguments["model_path"], 'config.json')
+            vocabPath = os.path.join(arguments["model_path"], "vocab.txt")
+            modelPath = arguments["model_path"]
 
     try:
         with open(arguments["config_file"]) as configFile:
             config = json.load(configFile)
     except:
         config = {}
+
+    if arguments["model_path"] != "":
+        config["model"]["vocab"] = vocabPath
+        config["model"]["directory"] = modelPath
 
     if len(arguments["test_set"]) > 0:
         config["validationDataSources"] = [{ "type" : "TextDataSource",
@@ -159,6 +182,7 @@ def loadConfig(arguments):
         config["adaptor"] = {}
 
     if arguments["make_vocab"]:
+        config["adaptor"] = {}
         if not "unlimited-vocab-tokenizer" in config["adaptor"]:
             config["adaptor"]["unlimited-vocab-tokenizer"] = {}
     elif arguments["make_test_set"]:
@@ -227,14 +251,19 @@ def runLocally(arguments):
             if not "predictor" in config:
                 config["predictor"] = {}
 
-            if "model" in config:
-                config["model"]["directory"] = arguments["model_path"]
-
             validationData = getValidationData(config)
             predictor = getPredictor(config, validationData)
             perplexity = predictor.predict()
 
             print("Perplexity " + str(perplexity))
+
+        elif arguments["make_clusters"]:
+
+            validationData = getValidationData(config)
+            clusterer = getClusterer(config, validationData, arguments["output_directory"],
+                int(arguments["cluster_count"]))
+
+            clusterer.groupDataIntoClusters()
 
         elif arguments["make_test_set"]:
             validationData = getValidationData(config)

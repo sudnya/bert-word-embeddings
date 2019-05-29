@@ -1,0 +1,49 @@
+{
+    "model" :
+    {
+        "type" : "ClassTransformerModel",
+        "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab-guttenberg-256k.txt",
+        "epochs" : 200,
+        "embedding-size" : 128,
+        "assignment-count" : 2,
+        "number-of-classes" : 512,
+        "number-of-direct-classes" : 384,
+        "number-of-layers" : 1,
+        "number-of-attention-heads" : 4,
+        "number-of-document-classes" : 1024,
+        "steps-per-epoch" : 10,
+        "softmax-sample-count": 1024,
+        "learning-rate": 0.001,
+        "word-frequency-power-law-exponent" : 0.00001,
+        "gradient-clipping-factor": 10.0,
+        "run-validation" : true,
+        "validation-steps-per-epoch" : 10
+    },
+    "adaptor" :
+    {
+        "chunking" :
+        {
+            "size" : 16
+        },
+        "batching" :
+        {
+            "size" : 128
+        }
+    },
+    "trainingDataSources" :
+    [
+        {
+            "type" : "AOLQueryDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/training/aol"
+        }
+    ],
+    "validationDataSources" :
+    [
+        {
+            "type" : "AOLQueryDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/validation/aol"
+        }
+    ]
+
+
+}

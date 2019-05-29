@@ -2,36 +2,25 @@
 from models.ModelFactory import ModelFactory
 from models.Vocab import Vocab
 
-from inference.EvaluatorFactory import EvaluatorFactory
+import numpy
 
 import logging
 
 logger = logging.getLogger(__name__)
 
-class Predictor:
+class Featurizer:
     def __init__(self, config, validationDataset):
         self.config = config
         self.validationDataset = validationDataset
 
         self.model = self.loadModel()
-        self.evaluator = EvaluatorFactory(config).create()
 
-    def predict(self):
-        self.evaluator.initialize()
+    def featurizeOneBatch(self):
+        inputs, labels, secondInputs, _ = self.validationDataset.next()
 
-        logger.debug("Running predictor for " + str(self.getIterations()) + " iterations")
+        logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
 
-        for i in range(self.getIterations()):
-            inputs, labels, _, _ = self.validationDataset.next()
-
-            logger.debug(" sample (inputs: " + str(inputs) + ", label: " + str(labels) + ")")
-
-            predictions = self.model.predict(inputs,
-                self.evaluator.getRequestedPredictions(inputs, labels))
-
-            self.evaluator.evaluate(inputs, labels, predictions)
-
-        return self.evaluator.finalize()
+        return inputs, labels, self.model.getFeatures(inputs, secondInputs)
 
     def getIterations(self):
         if "iterations" in self.config["predictor"]:

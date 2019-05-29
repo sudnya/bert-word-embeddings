@@ -30,6 +30,7 @@ def saveVocab(dataset, size, directory):
     previousVocabSize = 0
 
     start = time.time()
+    totalTokens = 0
 
     while True:
         string = dataset.next()
@@ -38,12 +39,13 @@ def saveVocab(dataset, size, directory):
         if not string in vocab:
             vocab[string] = 0
 
+        totalTokens += 1
         vocab[string] += 1
 
         if len(vocab) + Vocab.getVocabOffset() >= previousVocabSize + size * 0.01:
             previousVocabSize = len(vocab) + Vocab.getVocabOffset()
             logger.debug("Vocab size is " + str(previousVocabSize) + " time so far: " +
-                str(time.time() - start))
+                str(time.time() - start) + " total tokens: "  + str(totalTokens))
 
         if len(vocab) + Vocab.getVocabOffset() >= size:
             break

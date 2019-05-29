@@ -33,7 +33,7 @@ class UnlimitedVocabTokenizerAdaptor:
         tokenBuffer = []
 
         while True:
-            nextCharacter = self.source.next()
+            nextCharacter, documentId = self.source.next()
 
             if isSingleCharacterToken(nextCharacter):
                 self.addToken(tokenBuffer)

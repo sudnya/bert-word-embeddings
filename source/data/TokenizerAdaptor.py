@@ -11,6 +11,7 @@ class TokenizerAdaptor:
         self.config = config
         self.source = source
         self.buffer = []
+        self.idBuffer = []
         self.vocab = self.loadVocab()
         self.maximumSize = None
         self.tokenCount = None
@@ -24,10 +25,11 @@ class TokenizerAdaptor:
 
     def fillBuffer(self):
         while len(self.buffer) < self.vocab.getMaximumTokenSize():
-            character = self.source.next()
+            character, documentId = self.source.next()
             if len(character) == 0:
                 break
             self.buffer.append(character)
+            self.idBuffer.append(documentId)
 
     def matchBestToken(self):
         token = self.tryMatchBestToken()
@@ -45,19 +47,36 @@ class TokenizerAdaptor:
 
 
     def tryMatchBestToken(self):
-        # try to match the biggest
-        for i in range(0, len(self.buffer)):
-            end = len(self.buffer) - i
-            possibleToken = "".join(self.buffer[:end])
-            #logger.debug("trying string: '" + possibleToken + "'")
+        possibleWord = self.buffer[0]
+        documentId = self.idBuffer[0]
 
-            if self.vocab.contains(possibleToken):
-                del self.buffer[:end]
-                token = self.vocab.getToken(possibleToken)
-                logger.debug("string: '" + possibleToken + "' -> " + str(token))
-                return token
+        match = None
 
-        return None
+
+        for i in range(1, len(self.buffer)):
+            possibleWord += self.buffer[i]
+
+            if self.vocab.isPrefix(possibleWord):
+                continue
+
+            if not self.vocab.contains(possibleWord) and len(possibleWord) > 1:
+                match = possibleWord[:-1]
+                del self.buffer[:i]
+                del self.idBuffer[:i]
+                break
+
+        if match is None and self.vocab.contains(possibleWord):
+            match = possibleWord
+            del self.buffer[:]
+            del self.idBuffer[:]
+
+        if match is None:
+            return None
+
+        token = self.vocab.getToken(match)
+        logger.debug("string: '" + match + "' -> " + str(token) + " (" + str(documentId) + ")")
+
+        return token, documentId
 
     def hasUnicode(self):
         for character in self.buffer:
@@ -72,8 +91,10 @@ class TokenizerAdaptor:
     def expandOneUnicodeCharacter(self):
         for index, character in enumerate(self.buffer):
             if self.isUnicode(character):
-                self.buffer = self.buffer[:index] + list(
-                    repr(character.encode('unicode-escape'))) + self.buffer[index + 1:]
+                expanded = list(repr(character.encode('unicode-escape')))
+                self.buffer = self.buffer[:index] + expanded + self.buffer[index + 1:]
+                self.idBuffer = self.idBuffer[:index] + [self.idBuffer[index] for
+                    _ in range(len(expanded))] + self.idBuffer[index + 1:]
                 break
 
     def size(self):
@@ -106,8 +127,15 @@ class TokenizerAdaptor:
             pass
 
         logger.info("Scanning token count..." + str(count))
+        self.reset()
 
         return count
+
+    def shuffleDocuments(self):
+        self.source.shuffleDocuments()
+
+    def clone(self):
+        return TokenizerAdaptor(self.config, self.source.clone())
 
 
 

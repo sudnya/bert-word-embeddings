@@ -15,6 +15,7 @@ class CacheAdaptor:
 
     def reset(self):
         self.iterations = None
+        self.random = numpy.random.RandomState(seed=self.getSeed())
         self.source.reset()
 
     def size(self):
@@ -41,6 +42,12 @@ class CacheAdaptor:
 
         while len(self.cache) < self.getCacheSize():
             self.cache.append(self.source.next())
+
+    def shuffleDocuments(self):
+        self.source.shuffleDocuments()
+
+    def clone(self):
+        return CacheAdaptor(self.config, self.source.clone())
 
     def getMaximumIterationsPerRefresh(self):
         return self.getReuse() * self.getCacheSize()

@@ -1,4 +1,6 @@
 
+import numpy
+
 class TextDataSource:
     def __init__(self, config, sourceConfig):
         self.config = config
@@ -9,15 +11,17 @@ class TextDataSource:
 
     def next(self):
         c = self.file.read(1)
+        index = self.getIndex()
 
         if len(c) == 0:
-            if self.index < len(self.files):
-                self.file = open(self.files[self.index], encoding='ISO-8859-1')
+            if self.index + 1 < len(self.files):
                 self.index += 1
+                self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
 
                 c = self.file.read(1)
+                index = self.getIndex()
 
-        return c
+        return c, index
 
     def getPath(self):
         return self.sourceConfig["path"]
@@ -27,9 +31,22 @@ class TextDataSource:
         return sum([os.path.getsize(f) for f in self.files])
 
     def reset(self):
-        assert len(self.files) > 0
+        assert len(self.files) > 0, "No files found in " + self.getPath()
         self.file = open(self.files[0], encoding='ISO-8859-1')
-        self.index = 1
+        self.indices = list(range(len(self.files)))
+        self.index = 0
+        self.random = numpy.random.RandomState(seed=self.getSeed())
+
+    def shuffleDocuments(self):
+        self.random.shuffle(self.indices)
+        self.index = 0
+        self.file = open(self.files[self.getIndex()], encoding='ISO-8859-1')
+
+    def getIndex(self):
+        return self.indices[self.index]
+
+    def clone(self):
+        return TextDataSource(self.config, self.sourceConfig)
 
     def getName(self):
         return self.getPath()
@@ -46,6 +63,12 @@ class TextDataSource:
             allFiles += [os.path.join(root, f) for f in files]
 
         return sorted(allFiles)
+
+    def getSeed(self):
+        if not "seed" in self.sourceConfig:
+            return 125
+
+        return int(self.sourceConfig["seed"])
 
 
 

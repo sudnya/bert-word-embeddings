@@ -13,7 +13,7 @@ datasetRoot = "/data/1tb-ssd/language"
 #datasetRoot = "/Users/gregorydiamos/checkout/bursty-lm/data"
 
 def getLog():
-    return open(os.path.join(workspace, "log"), "w+")
+    return open(os.path.join(workspace, "log"), "a")
 
 def approximatelyEqual(fileSize, dataSize):
     margin = 8

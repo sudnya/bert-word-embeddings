@@ -1,11 +1,15 @@
 
+import pygtrie
+
 class Vocab:
     def __init__(self, config):
         self.config = config
-        self.vocab, self.maxTokenSize = self.loadVocab()
+        self.vocab, self.vocabTrie, self.tokens, self.maxTokenSize = self.loadVocab()
 
     def loadVocab(self):
+        vocabTrie = None
         vocab = {}
+        tokens = {}
         maxTokenSize = 0
         with open(self.getVocabPath(), "r") as vocabFile:
             for line in vocabFile:
@@ -14,22 +18,42 @@ class Vocab:
                 else:
                     string = line
                 if not string in vocab:
-                    vocab[string] = len(vocab) + Vocab.getVocabOffset()
+                    token = len(tokens) + Vocab.getVocabOffset()
+                    vocab[string] = token
+                    tokens[token] = string
                     maxTokenSize = max(maxTokenSize, len(string))
 
-        return vocab, maxTokenSize
+        return vocab, vocabTrie, tokens, maxTokenSize
 
     def getVocabPath(self):
         return self.config["model"]["vocab"]
 
+    def save(self, path):
+        shutil.copy(self.getVocabPath(), path)
+        with open(self.getVocabPath(), "w") as vocabFile:
+            for i in len(self.tokens):
+                vocabFile.write(self.tokens[i + Vocab.getVocabOffset()] + "\n")
+
     def contains(self, token):
         return token in self.vocab
+
+    def isPrefix(self, prefix):
+        if self.vocabTrie is None:
+            self.makeTrie()
+
+        return self.vocabTrie.has_subtrie(prefix)
+
+    def makeTrie(self):
+        self.vocabTrie = pygtrie.CharTrie()
+
+        for string, token in self.vocab.items():
+            self.vocabTrie[string] = token
 
     def getMaximumTokenSize(self):
         return self.maxTokenSize
 
     def getSize(self):
-        return len(self.vocab) + Vocab.getVocabOffset()
+        return len(self.tokens) + Vocab.getVocabOffset()
 
     def getToken(self, string):
         #print(self.vocab)
@@ -44,9 +68,8 @@ class Vocab:
         if token < Vocab.getVocabOffset():
             return "RESERVED_" + str(token)
 
-        for string, tokenId in self.vocab.items():
-            if tokenId == token:
-                return string
+        if token in self.tokens:
+            return self.tokens[token]
 
         raise RuntimeError("invalid token " + str(token))
 
@@ -55,7 +78,7 @@ class Vocab:
 
     @staticmethod
     def getVocabOffset():
-        return 3
+        return 6
 
     @staticmethod
     def getClassLabelToken():
@@ -68,6 +91,18 @@ class Vocab:
     @staticmethod
     def getUnkToken():
         return 2
+
+    @staticmethod
+    def getSameSourceToken():
+        return 3
+
+    @staticmethod
+    def getDifferentSourceToken():
+        return 4
+
+    @staticmethod
+    def getSeparatorToken():
+        return 5
 
     @staticmethod
     def isReservedToken(token):
