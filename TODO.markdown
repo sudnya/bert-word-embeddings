@@ -1,18 +1,18 @@
 
-Goal 2: Use inverse reinforcement learning to discover rewards from different datasets
+Goal 1: Create a DiversitySavant. Suggest text to encourage a culture of diversity. Goal: Improve gender equality in society (in companies).
 
-    Why: Answer: what do (lots of) users care about?
-        Hypothesis: Quite a few different things, perhaps including some things that we don't already know about.
+    Task: Is text_A or text_B more appealing from a perspective of diversity?
 
-    Hypothesis: Clustering on features of good model in 1) will yield interesting classes of
-                natural language tasks.
+    TODO: Write a labeling pipeline for modifications to text.
 
-        TODO: Run clustering, consider multiple granularities (sentences, paragraphs, pages, documents).
-            TODO: support chunking based on meaningful boundaries
+    TODO: Write a keyboard web app.
 
-        TODO: Support new data sources (e.g. reddit)
+Goal 2: Improve current implementation
 
-        TODO: Run clustering on new bigger datasets
+    TODO: Run clustering, consider multiple granularities (sentences, paragraphs, pages, documents).
+        TODO: support chunking based on meaningful boundaries
+
+    TODO: Bug in reddit dataset, there is no subreddit vocab
 
 Goal 3: Find a big deep net that can fit TBs of text data and is fast enough to train on 1 V100.
 
@@ -27,6 +27,43 @@ Goal 4: Curate a big dataset by training a crawler to find data on the internet 
 
 
 === Finished ===
+
+Goal 2: Use inverse reinforcement learning to discover rewards from different datasets
+
+    Why: Answer: what do (lots of) users care about?
+        Hypothesis: Quite a few different things, perhaps including some things that we don't already know about.
+
+    Hypothesis: Clustering on features of good model in 1) will yield interesting classes of
+                natural language tasks. - Done - Conclusion: Yes
+
+
+        TODO: Support new data sources (e.g. reddit) - Done
+
+        TODO: Run clustering on new bigger datasets - Done
+            Hypothesis: clusetrs will obey ZIpf's law : true
+
+Cluster, 2254 (30541) - shills
+Cluster, 1094 (30336) - gun law
+Cluster, 997 (28751) - societal values *
+Cluster, 3192 (26852) - racist bullshit
+Cluster, 2143 (26773) - trolling
+Cluster, 496 (22911) - public debate
+Cluster, 567 (20943) - bias
+Cluster, 1946 (18273) - property law
+Cluster, 2138 (17372) - england
+Cluster, 1320 (16788) - gender *
+Cluster, 6234 (16075) - dating
+Cluster, 1736 (14823) - immigration
+Cluster, 1802 (13590) - young culture
+Cluster, 3905 (13517) - jealousy
+Cluster, 2096 (11969) - comparisons
+Cluster, 7379 (11467) - gun law
+Cluster, 6501 (11262) - political policy on jobs
+Cluster, 5091 (10497) - EU conflict
+Cluster, 2218 (9615) - social responsibility
+Cluster, 7087 (9489) - countries
+Cluster, 1412 (9389) - attraction
+Cluster, 1879 (4268) - toxic heritage
 
 Goal 1: Implement a LM (embeddings) training pipeline
 

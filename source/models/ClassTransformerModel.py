@@ -537,9 +537,11 @@ class ClassTransformerModel:
         return tf.contrib.losses.metric_learning.triplet_semihard_loss(labels, features)
 
     def evaluateClassificationLoss(self, batchOutputs, labels):
-        # batch outputs is [batch, 2, assignments, document-classes]
+        # batch outputs is [batch, assignments, 2]
+        # labels is [batch, sequence, assignments, 2]
+        labels = (labels[:, 0, :, 0] == labels[:, 0, :, 1])
         return tf.losses.sparse_softmax_cross_entropy(
-            labels=labels[:, 0, :],
+            labels=labels,
             logits=batchOutputs)
 
     def evaluateLoss(self, batchOutputs, labels):
@@ -714,8 +716,15 @@ class ClassTransformerModel:
         features = self.multiheadedAttention(features)
 
         # features is (batch-size, sequence-length, 2, assignments, embedding-size)
-        return tf.layers.dense(tf.reduce_max(features, axis=1),
-            units=self.getNumberOfDocumentClasses())
+        reducedFeatures = tf.reduce_max(features, axis=1)
+
+        # reducedFeatures is (batch size, 2, assignments, embedding-size)
+        transposedFeatures = tf.transpose(reducedFeatures, [0,2,1,3])
+
+        # transposedFeatures is (batch size, assignments, 2, embedding-size)
+        reshapedFeatures = tf.reshape(transposedFeatures, (-1, 2 * self.getEmbeddingSize()))
+
+        return tf.layers.dense(reshapedFeatures, units=2)
 
     def convertToEmbeddings(self, sequenceIds):
         assignments = []
@@ -907,9 +916,6 @@ class ClassTransformerModel:
 
     def getNumberOfAttentionHeads(self):
         return int(self.config["model"]["number-of-attention-heads"])
-
-    def getNumberOfDocumentClasses(self):
-        return int(self.config["model"]["number-of-document-classes"])
 
     def getWordFrequencyPowerLawExponent(self):
         return float(self.config["model"]["word-frequency-power-law-exponent"])
