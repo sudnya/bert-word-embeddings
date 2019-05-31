@@ -722,7 +722,8 @@ class ClassTransformerModel:
         transposedFeatures = tf.transpose(reducedFeatures, [0,2,1,3])
 
         # transposedFeatures is (batch size, assignments, 2, embedding-size)
-        reshapedFeatures = tf.reshape(transposedFeatures, (-1, 2 * self.getEmbeddingSize()))
+        reshapedFeatures = tf.reshape(transposedFeatures, (-1, self.getAssignmentCount(),
+            2 * self.getEmbeddingSize()))
 
         return tf.layers.dense(reshapedFeatures, units=2)
 
