@@ -1,0 +1,45 @@
+{
+    "model" :
+    {
+        "type" : "BERTModel",
+        "vocab" : "/Users/sudnya-d/datasets/vocabs/guttenberg-1K.txt",
+        "epochs" : 1,
+        "layerCount": 1,
+        "attentionHeads": 3,
+        "embeddingSize" : 128,
+        "stepsPerEpoch" : 1000,
+        "learningRate": 0.001,
+        "gradientClippingFactor": 10.0,
+        "runValidation" : true,
+        "validationStepsPerEpoch" : 100
+    },
+    "adaptor" :
+    {
+        "chunking" :
+        {
+            "size" : 31
+        }
+    },
+    "trainingDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/Users/sudnya-d/datasets/guttenberg-splits/000.txt"
+        }
+    ],
+    "validationDataSources" :
+    [
+        {
+            "type" : "TextDataSource",
+            "path" : "/Users/sudnya-d/datasets/guttenberg-splits/199.txt"
+        }
+    ]
+
+
+}
+
+
+
+
+
+
