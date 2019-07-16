@@ -5,7 +5,11 @@ import boto3
 import requests
 import subprocess
 import time
+import sys
 
+sys.path.append('source')
+
+from serving.Vocab import Vocab
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +29,8 @@ def main():
         help = "Query submit the specified text as a query to the existing server.")
     parser.add_argument("-v", "--verbose", default = False, action="store_true",
         help = "Set the log level to debug, printing out detailed messages during execution.")
+    parser.add_argument("-V", "--vocab", default="/Users/gregorydiamos/checkout/lm/vocabs/vocab-guttenberg-256k.txt",
+        help = "The path to the vocab file.")
     parser.add_argument("-L", "--enable-logger", default = [], action="append",
         help = "Enable logging for a specific module")
     parser.add_argument("-O", "--override-config", default = [], action="append",
@@ -34,7 +40,90 @@ def main():
 
     setupLogger(arguments)
 
-    deploy(arguments)
+    if len(arguments["query_text"]) > 0:
+        query(arguments)
+    else:
+        deploy(arguments)
+
+def query(arguments):
+    server = arguments["server"]
+
+    isRunning, server = isServerRunning(server)
+
+    if not isRunning:
+        raise RuntimeError("Server '" + server + "' is not running...")
+
+    url = "http://" + server + ":8501/v1/models/gender_equality_classifier:predict"
+
+    logger.debug("Loading vocab: " + arguments["vocab"])
+    vocab = Vocab(arguments["vocab"])
+    queryText = arguments["query_text"]
+    queryJson = {"inputs" : {"input_text" : formatQueryText(queryText, vocab)}}
+
+    logger.debug("sending query text '" + queryText + "', json '" + str(queryJson) + "'")
+
+    try:
+        response = requests.post(url, json=queryJson)
+
+        logger.debug("Response: " + str(response))
+        logger.debug("Output: " + str(response.json()['outputs']['outputs'][0][0]))
+
+        return response.status_code == 200
+    except Exception as e:
+        logger.debug(e)
+        return False
+
+def formatQueryText(text, vocab):
+
+    tokens = tokenize(text, vocab)
+
+    return [[[token, token] for token in tokens]]
+
+def tokenize(text, vocab):
+    characters = [character for character in text]
+
+    tokens = []
+
+    while True:
+        token = tryMatchBestToken(characters, vocab)
+        if token is None:
+            break
+
+        tokens.append(token)
+
+    return tokens
+
+def tryMatchBestToken(characters, vocab):
+    if len(characters) == 0:
+        return None
+
+    possibleWord = characters[0]
+
+    match = None
+
+    for i in range(1, len(characters)):
+        possibleWord += characters[i]
+
+        if vocab.isPrefix(possibleWord):
+            continue
+
+        if not vocab.contains(possibleWord) and len(possibleWord) > 1:
+            match = possibleWord[:-1]
+            del characters[:i]
+            break
+
+    if match is None and vocab.contains(possibleWord):
+        match = possibleWord
+        del characters[:]
+
+    if match is None:
+        return None
+
+    token = vocab.getToken(match)
+    logger.debug("string: '" + match + "' -> " + str(token))
+
+    return token
+
 
 def deploy(arguments):
     server = arguments["server"]

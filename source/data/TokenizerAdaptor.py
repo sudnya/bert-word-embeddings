@@ -125,7 +125,7 @@ class TokenizerAdaptor:
                 if not self.maximumSize is None:
                     if count >= self.maximumSize:
                         break
-        except ValueError:
+        except ValueError as e:
             pass
 
         logger.info("Scanning token count..." + str(count))

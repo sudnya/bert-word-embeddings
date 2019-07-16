@@ -164,6 +164,7 @@ class ClassTransformerModel:
         self.classificationLoss = self.graph.get_tensor_by_name("classification-loss:0")
         self.classLoss = self.graph.get_tensor_by_name("class-loss:0")
         self.outputProbabilities = self.graph.get_tensor_by_name("output-probabilities:0")
+        self.outputDocumentClass = self.graph.get_tensor_by_name("output-document-class:0")
         self.loss = self.graph.get_tensor_by_name("loss:0")
         self.optimizerStep = self.graph.get_operation_by_name("optimizer-step")
 
@@ -188,11 +189,17 @@ class ClassTransformerModel:
         # classification logits (batch, sequence-length, 2, assignments, 2)
         classificationLogits = self.runClassificationModel()
 
+        # document classification logits (batch, sequence-length, 2, assignments, 2)
+        documentClassificationLogits = self.runDocumentClassificationModel()
+
         # compute the losses
         self.clusterLoss = tf.identity(self.evaluateClusteringLoss(
             self.features, self.classLabels), name="clustering-loss")
         self.classificationLoss = tf.identity(self.evaluateClassificationLoss(
             classificationLogits, self.classLabels), name="classification-loss")
+        self.documentClassificationLoss = tf.identity(self.evaluateDocumentClassificationLoss(
+            documentClassificationLogits, self.classLabels), name="document-classification-loss")
+
         self.classLoss = tf.identity(self.evaluateLoss(classLogits[:, 1:, :, :, :],
             self.classLabels[:, 1:, :, :]), name="class-loss")
         self.vocabLoss = tf.identity(self.evaluateVocabLoss(classLogits[:, 1:, :, :, :],
@@ -210,8 +217,12 @@ class ClassTransformerModel:
         self.outputProbabilities = tf.nn.softmax(vocabLogits,
                 name="output-probabilities")
 
+        self.outputDocumentClass = tf.reduce_max(documentClassificationLogits, axis=3)
+
         # optimizer
-        self.optimizerStep = self.createOptimizerStep(self.loss)
+        self.optimizerStep = self.createOptimizerStep(self.loss, "")
+        self.documentOptimizerStep = self.createOptimizerStep(self.documentClassificationLoss,
+            "document")
 
         # initializers
         self.globalInitializer = tf.global_variables_initializer()
@@ -347,13 +358,16 @@ class ClassTransformerModel:
         trainStart = time.time()
 
         totalLoss = 0.0
+        message = None
 
         for step in range(self.getStepsPerEpoch()):
             generatorStart = time.time()
 
             try:
                 inputs, labels, secondInputs, secondLabels = self.trainingDataSource.next()
-            except:
+            except Exception as e:
+                if message is None:
+                    message = str(e)
                 break
 
             generatorEnd = time.time()
@@ -391,8 +405,15 @@ class ClassTransformerModel:
         inputs = numpy.concatenate([inputs, secondInputs], axis=2)
         labels = numpy.concatenate([labels, secondLabels], axis=2)
 
-        trainingLoss, gradNorm, summaries, _ = self.session.run([self.loss,
-            self.gradientNorm, self.mergedSummary, self.optimizerStep],
+        if self.getShouldClassifyDocument():
+            optimizerStep = self.documentOptimizerStep
+            loss = self.documentClassificationLoss
+        else:
+            optimizerStep = self.optimizerStep
+            loss = self.loss
+
+        trainingLoss, gradNorm, summaries, _ = self.session.run([loss,
+            self.gradientNorm, self.mergedSummary, optimizerStep],
             feed_dict={self.inputTokens : inputs, self.labels : labels })
 
         if step % self.getStepsPerTensorboardLog():
@@ -408,10 +429,17 @@ class ClassTransformerModel:
         self.totalLoss = 0.0
         self.totalVocabLoss = 0.0
 
+        message = None
+
         for step in range(self.getValidationStepsPerEpoch()):
             generatorStart = time.time()
 
-            inputs, labels, secondInputs, secondLabels = self.validationDataSource.next()
+            try:
+                inputs, labels, secondInputs, secondLabels = self.validationDataSource.next()
+            except Exception as e:
+                if message is None:
+                    message = str(e)
+                break
 
             generatorEnd = time.time()
 
@@ -466,12 +494,17 @@ class ClassTransformerModel:
         inputs = numpy.concatenate([inputs, secondInputs], axis=2)
         labels = numpy.concatenate([labels, secondLabels], axis=2)
 
-        validationLoss, vocabLoss = self.session.run([self.loss, self.vocabLoss],
+        if self.getShouldClassifyDocument():
+            loss = self.documentClassificationLoss
+        else:
+            loss = self.loss
+
+        validationLoss, vocabLoss = self.session.run([loss, self.vocabLoss],
                 feed_dict={self.inputTokens : inputs,
                 self.labels : labels})
         return validationLoss, vocabLoss
 
-    def createOptimizerStep(self, loss):
+    def createOptimizerStep(self, loss, name):
         """One step of backprop."""
 
         optimizer = tf.train.AdamOptimizer(
@@ -479,7 +512,7 @@ class ClassTransformerModel:
             beta1=0.9,
             beta2=0.98,
             epsilon=10e-9,
-            name="optimizer-step")
+            name=name+"optimizer-step")
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
         gradients, _ = tf.clip_by_global_norm(gradients,
@@ -490,10 +523,13 @@ class ClassTransformerModel:
 
     def setupSummaries(self):
         tf.summary.scalar('total-loss', self.loss)
-        tf.summary.scalar('document-class-cross-entropy', self.classificationLoss)
-        tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
-        tf.summary.scalar('class-cross-entropy', self.classLoss)
-        tf.summary.scalar('cluster-loss', self.clusterLoss)
+        if self.getShouldClassifyDocument():
+            tf.summary.scalar('document-class-cross-entropy', self.documentClassificationLoss)
+        else:
+            tf.summary.scalar('document-match-cross-entropy', self.classificationLoss)
+            tf.summary.scalar('vocab-cross-entropy', self.vocabLoss)
+            tf.summary.scalar('class-cross-entropy', self.classLoss)
+            tf.summary.scalar('cluster-loss', self.clusterLoss)
         tf.summary.scalar('gradient-norm', self.gradientNorm)
 
         self.mergedSummary = tf.summary.merge_all()
@@ -539,7 +575,15 @@ class ClassTransformerModel:
     def evaluateClassificationLoss(self, batchOutputs, labels):
         # batch outputs is [batch, assignments, 2]
         # labels is [batch, sequence, 2, assignments, 1]
-        labels = tf.cast(labels[:, 0, 0, :, 0] == labels[:, 0, 1, :, 0], tf.int32)
+        labels = tf.cast(tf.equal(labels[:, 0, 0, :, 0], labels[:, 0, 1, :, 0]), tf.int32)
+        return tf.losses.sparse_softmax_cross_entropy(
+            labels=labels,
+            logits=batchOutputs)
+
+    def evaluateDocumentClassificationLoss(self, batchOutputs, labels):
+        # batch outputs is [batch, 2, assignments, 2]
+        # labels is [batch, sequence, 2, assignments, 1]
+        labels = labels[:,0,:,:,0]
         return tf.losses.sparse_softmax_cross_entropy(
             labels=labels,
             logits=batchOutputs)
@@ -727,6 +771,24 @@ class ClassTransformerModel:
 
         return tf.layers.dense(reshapedFeatures, units=2)
 
+    def runDocumentClassificationModel(self):
+        batchSize = tf.shape(self.features)[0]
+        sequenceLength = tf.shape(self.features)[1]
+
+        features = tf.reshape(self.features, (batchSize, sequenceLength, 2,
+            self.getAssignmentCount(), self.getEmbeddingSize()))
+
+        features = self.multiheadedAttention(features)
+
+        # features is (batch-size, sequence-length, 2, assignments, embedding-size)
+        reducedFeatures = tf.reduce_max(features, axis=1)
+
+        # transposedFeatures is (batch size, assignments, 2, embedding-size)
+        reshapedFeatures = tf.reshape(reducedFeatures, (-1, 2, self.getAssignmentCount(),
+            self.getEmbeddingSize()))
+
+        return tf.layers.dense(reshapedFeatures, units=2)
+
     def convertToEmbeddings(self, sequenceIds):
         assignments = []
         for assignment in range(self.getAssignmentCount()):
@@ -890,8 +952,8 @@ class ClassTransformerModel:
         with self.graph.as_default():
             tf.saved_model.simple_save(self.session,
                 directory,
-                inputs={"input-tokens" : self.inputTokens},
-                outputs={"output-probabilities" : self.outputProbabilities})
+                inputs={"input_text" : self.inputTokens},
+                outputs={"outputs" : self.outputDocumentClass})
 
         self.checkpointer.cleanup()
 
@@ -928,9 +990,14 @@ class ClassTransformerModel:
         return int(self.config["model"]["epochs"])
 
     def getShouldCreateModel(self):
-        if not "createNewModel" in self.config["model"]:
+        if not "create-new-model" in self.config["model"]:
             return False
         return bool(self.config["model"]["create-new-model"])
+
+    def getShouldClassifyDocument(self):
+        if not "classify-document" in self.config["model"]:
+            return False
+        return bool(self.config["model"]["classify-document"])
 
     def getStepsPerEpoch(self):
         return int(self.config["model"]["steps-per-epoch"])

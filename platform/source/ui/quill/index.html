@@ -3,13 +3,13 @@
 
 <!-- Create the toolbar container -->
 <div id="toolbar">
-  <button class="ql-bold">Bold</button>
-  <button class="ql-italic">Italic</button>
+    <button class="ql-bold">Bold</button>
+    <button class="ql-italic">Italic</button>
 </div>
 
 <!-- Create the editor container -->
 <div id="editor">
-  <p>Hello World!</p>
+    <p>Hello World!</p>
 </div>
 
 <!-- Include the Quill library -->
@@ -17,41 +17,57 @@
 
 <!-- Initialize Quill editor -->
 <script>
-  var quill = new Quill('#editor', {
+var quill = new Quill('#editor', {
     modules: { toolbar: '#toolbar' },
     theme: 'snow'
-  });
+});
 
-  var convertToInt = function(text) {
+var convertToInt = function(text) {
     asciiKeys = [];
-    for (var i = 0; i < text.length; i ++)
-      asciiKeys.push(text[i].charCodeAt(0));
+    for (var i = 0; i < text.length; i ++) {
+        ascii = text[i].charCodeAt(0)
+        asciiKeys.push([ascii, ascii]);
+    }
 
     return asciiKeys;
-  }
+}
 
-  var predictText = function(text) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", "http://ec2-3-80-133-115.compute-1.amazonaws.com:8501/v1/models/gender_equality_classifier:predict", true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.onreadystatechange = function() {
+var doesNotPromoteEquality = function(response) {
+    return true;
+}
+
+var predictText = function(text) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "http://ec2-3-80-133-115.compute-1.amazonaws.com:8501/v1/models/gender_equality_classifier:predict", true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    xhr.onreadystatechange = function() {
         if (xhr.readyState == XMLHttpRequest.DONE) {
         }
+
         console.log(xhr.responseText);
-      }
 
-      xhr.send(JSON.stringify({
-         "inputs" : { "input_text" : [convertToInt(text)] },
-      }));
-  }
+        response = JSON.parse(xhr.responseText);
 
-  quill.on('text-change', function(delta, oldDelta, source) {
+        if doesNotPromoteEquality(response) {
+            quill.formatText(0, quill.getLength(), 'color', 'red');
+        }
+        else {
+            quill.formatText(0, quill.getLength(), 'color', 'black');
+        }
+    }
+
+    xhr.send(JSON.stringify({
+        "inputs" : { "input_text" : [convertToInt(text)] },
+    }));
+}
+
+quill.on('text-change', function(delta, oldDelta, source) {
     var text = quill.getText();
 
-    var prediction = predictText(text);
+    predictText(text);
+}
 
-    //console.log(prediction);
-  });
+});
 
-  quill.formatLine(4, 4, 'align', 'center');
 </script>

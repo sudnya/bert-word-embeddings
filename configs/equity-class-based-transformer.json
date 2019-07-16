@@ -3,7 +3,7 @@
     {
         "type" : "ClassTransformerModel",
         "vocab" : "/Users/gregorydiamos/checkout/lm/vocabs/vocab-guttenberg-256k.txt",
-        "epochs" : 200,
+        "epochs" : 10,
         "embedding-size" : 128,
         "assignment-count" : 2,
         "number-of-classes" : 512,
@@ -11,12 +11,14 @@
         "number-of-layers" : 1,
         "number-of-attention-heads" : 4,
         "number-of-document-classes" : 1024,
-        "steps-per-epoch" : 10,
+        "steps-per-epoch" : 100,
         "softmax-sample-count": 1024,
-        "learning-rate": 0.001,
+        "learning-rate": 0.0001,
         "word-frequency-power-law-exponent" : 0.00001,
         "gradient-clipping-factor": 10.0,
         "run-validation" : true,
+        "classify-document" : true,
+        "steps-per-tensorboard-log" : 1,
         "validation-steps-per-epoch" : 10
     },
     "adaptor" :
@@ -27,21 +29,23 @@
         },
         "batching" :
         {
-            "size" : 128
+            "size" : 8
         }
     },
     "trainingDataSources" :
     [
         {
-            "type" : "AOLQueryDataSource",
-            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/training/aol"
+            "type" : "RankingCsvDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/training/elo"
         }
     ],
     "validationDataSources" :
     [
         {
-            "type" : "AOLQueryDataSource",
-            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/validation/aol"
+            "type" : "RankingCsvDataSource",
+            "path" : "/Users/gregorydiamos/checkout/bursty-lm/data/training/elo"
         }
     ]
+
+
 }
