@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 import logging
 import os
 import boto3
+from botocore.exceptions import ClientError
 import random
 import time
 
@@ -50,7 +51,7 @@ def label_text(arguments):
     batch = create_batch(arguments, task, dataset)
 
     # wait for results
-    labels = wait_for_labeling_task_to_finish(batch)
+    labels = wait_for_labeling_task_to_finish(batch, arguments)
 
     # save the labels
     save_labels(labels, batch, arguments)
@@ -60,9 +61,16 @@ def save_labels(labels, batch, arguments):
     output_path = arguments["output_path"]
 
     with open(output_path, "w") as output_file:
-        for label, hit in zip(labels, batch):
+        for hit in batch:
+            hit_id = hit[2]['HIT']['HITId']
+
+            if not hit_id in labels:
+                continue
+
             left_path  = hit[0]
             right_path = hit[1]
+
+            label = labels[hit_id]
 
             output_file.write(",".join(['"' + left_path.replace("\"", "\"\"") + '"',
                 '"' + right_path.replace("\"", "\"\"") + '"', label]) + "\n")
@@ -101,38 +109,56 @@ def load_text(arguments):
     return lines
 
 
-def wait_for_labeling_task_to_finish(batch):
+def wait_for_labeling_task_to_finish(batch, arguments):
 
     mturk = boto3.client('mturk', region_name=region_name,
         #aws_access_key_id=aws_access_key_id,
         #aws_secret_access_key=aws_secret_access_key,
         endpoint_url=MTURK_SANDBOX)
 
-    labels = []
+    labels = {}
 
-    for left, right, hit in batch:
+    remaining = batch.copy()
 
-        # Use the hit_id previously created
-        hit_id = hit['HIT']['HITId']
+    while len(remaining) > 0:
 
-        completed = False
+        finished_hits = set()
 
-        while not completed:
-            worker_results = mturk.list_assignments_for_hit(HITId=hit_id,
-                AssignmentStatuses=['Submitted'])
+        for left, right, hit in remaining:
+
+            # Use the hit_id previously created
+            hit_id = hit['HIT']['HITId']
+
+            try:
+                worker_results = mturk.list_assignments_for_hit(HITId=hit_id)
+            except ClientError:
+                time.sleep(2.0)
+                logger.debug(" throttled: " + str(hit_id))
+                continue
 
             logger.debug(worker_results)
 
             completed = worker_results["NumResults"] > 0
 
             if not completed:
-                time.sleep(10)
+                logger.debug(" not submitted yet: " + str(hit_id))
+                continue
 
-        xml_doc = xmltodict.parse(worker_results["Assignments"][0]["Answer"])
+            logger.debug(" submitted")
 
-        label = xml_doc['QuestionFormAnswers']['Answer']['FreeText']
+            finished_hits.add(hit_id)
 
-        labels.append(label)
+            xml_doc = xmltodict.parse(worker_results["Assignments"][0]["Answer"])
+
+            label = xml_doc['QuestionFormAnswers']['Answer']['FreeText']
+
+            labels[hit_id] = label
+
+        remaining = [i for i in remaining if not i[2]['HIT']['HITId'] in finished_hits]
+
+        if len(remaining) > 0:
+            save_labels(labels, batch, arguments)
+            time.sleep(10.0)
 
     return labels
 
@@ -235,18 +261,19 @@ def create_batch(arguments, task, dataset):
         task.set_text(left, right)
 
         new_hit = mturk.create_hit(
-            Title = 'Does Text 1 or Text 2 better promote equality among people?',
-            Description = 'Read Text 1 and Text 2 carefully.  Decide whether one better promotes a culture of equality.',
+            Title = 'Does Text 1 or Text 2 better promote a culture of equality among people?',
+            Description = 'Read Text 1 and Text 2 carefully.  Decide if one better promotes a culture of equality.',
             Keywords = 'text, quick, labeling, ranking',
             Reward = '0.01',
             MaxAssignments = 1,
-            LifetimeInSeconds = 60 * 5,
+            LifetimeInSeconds = 60 * 30,
             AssignmentDurationInSeconds = 60 * 5,
             AutoApprovalDelayInSeconds = 3600 * 24 * 3,
             Question = task.get_question()
         )
 
         logger.debug("Created new task '" + left + "' '" + right + "' ")
+        logger.debug(" " + str(new_hit))
 
         batch.append((left, right, new_hit))
 

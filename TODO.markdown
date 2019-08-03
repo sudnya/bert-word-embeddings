@@ -3,36 +3,29 @@ Goal 1: Create a DiversitySavant. Suggest text to encourage a culture of diversi
 
     Task: Is text_A or text_B more appealing from a perspective of diversity?
 
-    TODO: Write a labeling pipeline for modifications to text.
+    TODO: Use the labeling pipeline to label about 100 samples from one of the reddit clusters
 
     TODO: Write a keyboard web app.
 
-        TODO: Write inference server.
-        TODO: Write callbacks from Quill to inference server.
+        TODO: Write callbacks from Quill to inference server to draw underlines
 
 Goal 2: Improve current implementation
 
     TODO: Run clustering, consider multiple granularities (sentences, paragraphs, pages, documents).
         TODO: support chunking based on meaningful boundaries
 
-    TODO: Bug in reddit dataset, there is no subreddit vocab
+    TODO: Handle text chunks with different lengths.
 
 Goal 3: Find a big deep net that can fit TBs of text data and is fast enough to train on 1 V100.
 
     TODO: validate that a 10M parameter transformer can do it
-        Done: it can run on 50GB, ideally more on a TURING card
+       Test the TURING card
 
-    TODO: Install the TURING card
 
 Goal 4: Curate a big dataset by training a crawler to find data on the internet that helps interesting
         goals discovered in 2.
 
         Name: SavantSearch: Mining Human Knowledge to Discover Narrow AIs
-
-Tasks
-
-- install new server
-- get AWS support up
 
 
 === Finished ===
